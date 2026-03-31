@@ -1,0 +1,40 @@
+# Build directories
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Qt Creator/CLion/VSCode project files
+*.user
+*.pro.user
+*.qbs.user
+*.creator.*
+*.autosave
+*.kdev4
+.idea/
+.vscode/
+
+# Compiled binaries and libraries
+*.o
+*.obj
+*.so
+*.a
+*.dll
+*.exe
+*.app
+*.dylib
+
+# Generated files
+moc_*.cpp
+moc_*.h
+ui_*.h
+qrc_*.cpp
+
+# Misc
+*.log
+*.tmp
+*.bak
+*.swp
+*~
+.DS_Store
