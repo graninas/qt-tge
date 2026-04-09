@@ -7,6 +7,8 @@ namespace Ui {
 class MainWindow;
 }
 
+class GraphWidget; // Forward declaration of GraphWidget class
+
 class MainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -17,6 +19,7 @@ public:
 
 private:
     Ui::MainWindow *ui;
+    GraphWidget *graphWidget; // Pointer to the graph widget
 };
 
 #endif // MAINWINDOW_H

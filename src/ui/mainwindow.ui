@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>400</width>
-    <height>300</height>
+    <width>1024</width>
+    <height>768</height>
    </rect>
   </property>
   <property name="windowTitle">
-   <string>QtWidgetsApp</string>
+   <string>Qt-TGE</string>
   </property>
   <widget class="QWidget" name="centralwidget"/>
  </widget>

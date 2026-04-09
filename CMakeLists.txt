@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.5)
-project(QtWidgetsApp LANGUAGES CXX)
+project(QtTGE LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -12,8 +12,8 @@ find_package(Qt5 REQUIRED COMPONENTS Widgets)
 set(UI_FILES ui/mainwindow.ui)
 
 # Sources
-set(SOURCES src/main.cpp src/mainwindow.cpp)
-set(HEADERS src/mainwindow.h)
+set(SOURCES src/main.cpp src/mainwindow.cpp src/graphwidget.cpp)
+set(HEADERS src/mainwindow.h src/graphwidget.h)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
