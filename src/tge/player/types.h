@@ -1,26 +1,42 @@
-#ifndef TGE_PLAYER_MODEL_H
-#define TGE_PLAYER_MODEL_H
+#ifndef TGE_PLAYER_TYPES_H
+#define TGE_PLAYER_TYPES_H
 
-#include <QString>
-#include <QVariant>
 #include <QVector>
+#include <QString>
 #include "../../tge/domain.h"
 
 namespace tge {
 namespace player {
 
+// Forward declarations for static types
+using tge::domain::VariableDef;
+using tge::domain::LocationDef;
+using tge::domain::EdgeDef;
+
+// Dynamic variable state
 struct VariableState {
-    QString name;
-    domain::VarType type;
-    QVariant value;
+    const VariableDef* def; // Reference to static definition
+    QString value; // Current value (dummy for now)
 };
 
-// Placeholder for runtime game state
+// Dynamic edge state
+struct EdgeState {
+    const EdgeDef* def; // Reference to static definition
+};
+
+// Dynamic location state
+struct LocationState {
+    const LocationDef* def; // Reference to static definition
+    QVector<VariableState> localVariables;
+    QVector<EdgeState> outgoingEdges;
+};
+
+// Dynamic game state (can be extended)
 struct GameState {
-    // To be implemented
+    QVector<LocationState> locations;
 };
 
 } // namespace player
 } // namespace tge
 
-#endif // TGE_PLAYER_MODEL_H
+#endif // TGE_PLAYER_TYPES_H

@@ -10,8 +10,34 @@ namespace runtime {
 
 class GameInitializer {
 public:
-    GameInitializer(const domain::GameDef& /*gameDef*/) {}
-    GameState initialize() { return GameState{}; }
+    GameInitializer(const domain::GameDef& gameDef) : m_gameDef(gameDef) {}
+
+    GameState initialize() {
+        GameState state;
+        // For each static location, create a LocationState
+        for (const auto& locDef : m_gameDef.locations) {
+            LocationState locState;
+            locState.def = &locDef;
+            // For each static local variable, create a VariableState
+            for (const auto& varDef : locDef.localVariables) {
+                VariableState varState;
+                varState.def = &varDef;
+                varState.value = ""; // Dummy value for now
+                locState.localVariables.append(varState);
+            }
+            // For each static outgoing edge, create an EdgeState
+            for (const auto& edgeDef : locDef.outgoingEdges) {
+                EdgeState edgeState;
+                edgeState.def = &edgeDef;
+                locState.outgoingEdges.append(edgeState);
+            }
+            state.locations.append(locState);
+        }
+        return state;
+    }
+
+private:
+    const domain::GameDef& m_gameDef;
 };
 
 } // namespace runtime
