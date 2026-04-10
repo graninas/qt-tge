@@ -18,8 +18,7 @@ struct IdGenerator {
 
 // Editor/construction state (example, can be extended)
 struct EditorState {
-    QVector<lang::LocationDef> locations; // The static graph model being built
-    IdGenerator idGen; // For unique ID generation
+    // Optionally, can hold editor-specific state
 };
 
 } // namespace editor

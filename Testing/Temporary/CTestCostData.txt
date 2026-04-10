@@ -1,3 +1,4 @@
-DummyTest 2 0.0029451
-GraphStructureTest 1 0.00377448
+DummyTest 4 0.00128212
+GraphStructureTest 3 0.0015413
+EditorDynamicGraphTest 1 0.00381237
 ---
