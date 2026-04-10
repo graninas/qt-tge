@@ -90,6 +90,7 @@ Qt-TGE is an application for authoring and playing text-based games. It provides
 ### Location Variables
 - Each location may have a number of local named variables.
 - Each variable is typed: **string**, **integer**, **float**, **char**, or **bool**.
+- Each variable definition must have a default initial value (stored as a string and interpreted according to type).
 - While static (in the graph), a variable will have a rule for updating (to be defined later).
 
 ### Game Definition
@@ -102,6 +103,7 @@ A text game consists of:
 ### Global Variables
 - The game may have zero or more global named variables.
 - Each variable is typed: **string**, **integer**, **float**, **char**, or **bool**.
+- Each variable definition must have a default initial value (stored as a string and interpreted according to type).
 - While static (in the game definition), a variable will have a rule for updating (to be defined later).
 
 ### Game Dynamic Data
@@ -131,3 +133,4 @@ In addition to the core domain model, the application includes a UX domain model
 - **Location Labels**: Text labels associated with locations, displayed in the editor for clarity.
 - **Location Color**: Custom color for each location, used for visual distinction in the editor.
 - **Memo Stickers**: Small, text-containing figures that can be placed in the editor for notes or reminders.
+- **Location Coordinates**: Each location has unique coordinates (two integer numbers) on an infinite square grid. No two locations may occupy the same coordinates.
