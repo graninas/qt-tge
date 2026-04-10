@@ -31,3 +31,16 @@ target_include_directories(Qt-TGE PRIVATE src)
 source_group("UI Files" FILES ${UI_FILES})
 source_group("Header Files" FILES ${HEADERS})
 source_group("Source Files" FILES ${SOURCES})
+
+# Enable testing
+include(CTest)
+enable_testing()
+
+# Add test source
+add_executable(QtTGE_tests tests/test_dummy.cpp)
+target_link_libraries(QtTGE_tests Qt5::Core)
+add_test(NAME DummyTest COMMAND ${CMAKE_BINARY_DIR}/QtTGE_tests)
+
+add_executable(QtTGE_test_graph_structure tests/test_graph_structure.cpp)
+target_link_libraries(QtTGE_test_graph_structure Qt5::Core)
+add_test(NAME GraphStructureTest COMMAND ${CMAKE_BINARY_DIR}/QtTGE_test_graph_structure)
