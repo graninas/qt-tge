@@ -10,3 +10,5 @@ add_test(GraphStructureTest "/home/alexander/workspace/qt-tge/QtTGE_test_graph_s
 set_tests_properties(GraphStructureTest PROPERTIES  _BACKTRACE_TRIPLES "/home/alexander/workspace/qt-tge/CMakeLists.txt;46;add_test;/home/alexander/workspace/qt-tge/CMakeLists.txt;0;")
 add_test(EditorDynamicGraphTest "/home/alexander/workspace/qt-tge/QtTGE_test_editor_dynamic_graph")
 set_tests_properties(EditorDynamicGraphTest PROPERTIES  _BACKTRACE_TRIPLES "/home/alexander/workspace/qt-tge/CMakeLists.txt;50;add_test;/home/alexander/workspace/qt-tge/CMakeLists.txt;0;")
+add_test(PlayerRuntimeTest "/home/alexander/workspace/qt-tge/QtTGE_test_player_runtime")
+set_tests_properties(PlayerRuntimeTest PROPERTIES  _BACKTRACE_TRIPLES "/home/alexander/workspace/qt-tge/CMakeLists.txt;54;add_test;/home/alexander/workspace/qt-tge/CMakeLists.txt;0;")

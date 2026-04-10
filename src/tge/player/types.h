@@ -15,6 +15,11 @@ struct VariableState {
     QVariant value;
 };
 
+// Placeholder for runtime game state
+struct GameState {
+    // To be implemented
+};
+
 } // namespace player
 } // namespace tge
 
