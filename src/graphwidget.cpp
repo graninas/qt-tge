@@ -3,9 +3,11 @@
 #include <QGraphicsEllipseItem>
 #include <QGraphicsLineItem>
 #include <QWheelEvent>
+#include <QPainter>
+#include <cmath>
 
 GraphWidget::GraphWidget(QWidget *parent)
-    : QGraphicsView(parent)
+    : QGraphicsView(parent), gridSettings()
 {
     QGraphicsScene *scene = new QGraphicsScene(this);
     setScene(scene);
@@ -30,4 +32,23 @@ void GraphWidget::wheelEvent(QWheelEvent *event)
     } else {
         scale(1.0 / scaleFactor, 1.0 / scaleFactor);
     }
+}
+
+void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
+{
+    // Draw grid
+    painter->save();
+    painter->setPen(QPen(gridSettings.color, 1));
+    double step = gridSettings.scale;
+    QRectF r = rect;
+    // Align grid to visible area
+    double x0 = std::floor(r.left() / step) * step;
+    double y0 = std::floor(r.top() / step) * step;
+    for (double x = x0; x < r.right(); x += step) {
+        painter->drawLine(QLineF(x, r.top(), x, r.bottom()));
+    }
+    for (double y = y0; y < r.bottom(); y += step) {
+        painter->drawLine(QLineF(r.left(), y, r.right(), y));
+    }
+    painter->restore();
 }
