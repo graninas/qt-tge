@@ -27,24 +27,46 @@ public:
             return result;
         }
         GameState state;
-        // For each static location, create a LocationState
-        for (const auto& locDef : m_gameDef.locations) {
+        state.startLocation = nullptr;
+        for (auto& locDef : m_gameDef.locations) {
             LocationState locState;
             locState.def = &locDef;
-            // For each static local variable, create a VariableState
             for (const auto& varDef : locDef.localVariables) {
                 VariableState varState;
                 varState.def = &varDef;
-                varState.value = ""; // Dummy value for now
+                varState.value = "";
                 locState.localVariables.append(varState);
             }
-            // For each static outgoing edge, create an EdgeState
+            // For each static outgoing edge, create an EdgeState (toLocation set later)
             for (const auto& edgeDef : locDef.outgoingEdges) {
                 EdgeState edgeState;
                 edgeState.def = &edgeDef;
+                edgeState.toLocation = nullptr; // Will be set after all locations are created
                 locState.outgoingEdges.append(edgeState);
             }
-            state.locations.append(locState);
+            // Set startLocation pointer while traversing
+            if (!state.startLocation && locDef.type == domain::LocationType::Start) {
+                state.locations.append(locState);
+                state.startLocation = &state.locations.last();
+            } else {
+                state.locations.append(locState);
+            }
+        }
+        // Set toLocation pointers for all edges
+        // FIXME: This is O(N^2) and inefficient for large graphs. Consider optimizing with a map from id to LocationState.
+        // SUGGESTION: Build a QHash<int, LocationState*> mapping location id to pointer before this loop, then set edge.toLocation in O(1) per edge.
+        for (auto& loc : state.locations) {
+            for (auto& edge : loc.outgoingEdges) {
+                if (edge.def) {
+                    int toId = edge.def->toLocation;
+                    for (auto& targetLoc : state.locations) {
+                        if (targetLoc.def && targetLoc.def->id == toId) {
+                            edge.toLocation = &targetLoc;
+                            break;
+                        }
+                    }
+                }
+            }
         }
         result.state = state;
         return result;

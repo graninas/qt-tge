@@ -52,3 +52,7 @@ add_test(NAME EditorDynamicGraphTest COMMAND ${CMAKE_BINARY_DIR}/QtTGE_test_edit
 add_executable(QtTGE_test_player_runtime tests/test_player_runtime.cpp)
 target_link_libraries(QtTGE_test_player_runtime Qt5::Core)
 add_test(NAME PlayerRuntimeTest COMMAND ${CMAKE_BINARY_DIR}/QtTGE_test_player_runtime)
+
+add_executable(QtTGE_test_player_intermediate_path tests/test_player_intermediate_path.cpp)
+target_link_libraries(QtTGE_test_player_intermediate_path Qt5::Core)
+add_test(NAME PlayerIntermediatePathTest COMMAND ${CMAKE_BINARY_DIR}/QtTGE_test_player_intermediate_path)

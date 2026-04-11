@@ -1,5 +1,6 @@
-DummyTest 5 0.000819347
-GraphStructureTest 4 0.000955103
-EditorDynamicGraphTest 2 0.00229807
-PlayerRuntimeTest 3 0.00171426
+DummyTest 6 0.000647129
+GraphStructureTest 5 0.00119562
+EditorDynamicGraphTest 3 0.00152942
+PlayerRuntimeTest 4 0.000917095
+PlayerIntermediatePathTest 3 0.00130669
 ---

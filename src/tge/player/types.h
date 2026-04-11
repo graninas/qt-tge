@@ -22,6 +22,7 @@ struct VariableState {
 // Dynamic edge state
 struct EdgeState {
     const EdgeDef* def; // Reference to static definition
+    const LocationState* toLocation = nullptr; // Pointer to dynamic destination location
 };
 
 // Dynamic location state
@@ -34,6 +35,7 @@ struct LocationState {
 // Dynamic game state (can be extended)
 struct GameState {
     QVector<LocationState> locations;
+    LocationState* startLocation = nullptr;
 };
 
 } // namespace player
