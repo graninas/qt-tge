@@ -30,7 +30,18 @@ int main(int argc, char *argv[])
 
     // Initialize game state
     GameInitializer initializer(game);
-    GameState state_ = initializer.initialize();
+    GameInitResult result = initializer.initialize();
+    if (!result.state.has_value()) {
+        std::cerr << "Test failed: Initialization error: ";
+        if (result.error.has_value()) {
+            std::cerr << result.error.value().toStdString();
+        } else {
+            std::cerr << "Unknown error";
+        }
+        std::cerr << std::endl;
+        return 1;
+    }
+    const GameState& state_ = result.state.value();
 
     // Verify that dynamic locations were created
     if (state_.locations.size() != 2) {

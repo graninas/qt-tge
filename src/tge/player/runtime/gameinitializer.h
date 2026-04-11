@@ -1,6 +1,8 @@
 #ifndef TGE_PLAYER_RUNTIME_GAMEINITIALIZER_H
 #define TGE_PLAYER_RUNTIME_GAMEINITIALIZER_H
 
+#include <QString>
+#include <optional>
 #include "../../domain.h"
 #include "../types.h"
 
@@ -8,11 +10,22 @@ namespace tge {
 namespace player {
 namespace runtime {
 
+struct GameInitResult {
+    std::optional<GameState> state;
+    std::optional<QString> error;
+};
+
 class GameInitializer {
 public:
     GameInitializer(const domain::GameDef& gameDef) : m_gameDef(gameDef) {}
 
-    GameState initialize() {
+    GameInitResult initialize() {
+        GameInitResult result;
+        // Example error check: must have at least one location
+        if (m_gameDef.locations.isEmpty()) {
+            result.error = QString("GameDef must have at least one location");
+            return result;
+        }
         GameState state;
         // For each static location, create a LocationState
         for (const auto& locDef : m_gameDef.locations) {
@@ -33,7 +46,8 @@ public:
             }
             state.locations.append(locState);
         }
-        return state;
+        result.state = state;
+        return result;
     }
 
 private:
