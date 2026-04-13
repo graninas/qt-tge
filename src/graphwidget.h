@@ -39,6 +39,9 @@ private:
     bool rightButtonPressed = false;
     QPoint lastMousePos;
     GridSettings gridSettings;
+
+    int draggingDot = -1; // -1: none, 0: dot1, 1: dot2
+    QPointF dragOffset;   // Offset from mouse to dot center
 };
 
 #endif // GRAPHWIDGET_H
