@@ -47,9 +47,10 @@ void GraphWidget::centerOnObservedVirtualPoint()
     }
 }
 
-void GraphWidget::setModel(GraphModel *m)
+void GraphWidget::setModel(GraphModel *m, const AppearanceSettings& appearance)
 {
     model = m;
+    appearanceSettings = appearance;
     centerOnObservedVirtualPoint();
 }
 
@@ -167,7 +168,7 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
         } else if (i % 5 == 0) {
             painter->setPen(QPen(Qt::gray, 1)); // Medium
         } else {
-            painter->setPen(QPen(gridSettings.color, 1)); // Minor
+            painter->setPen(QPen(QColor(220, 220, 220), 1)); // Minor (was gridSettings.color)
         }
         painter->drawLine(QLineF(x, r.top(), x, r.bottom()));
     }
@@ -181,7 +182,7 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
         } else if (j % 5 == 0) {
             painter->setPen(QPen(Qt::gray, 1)); // Medium
         } else {
-            painter->setPen(QPen(gridSettings.color, 1)); // Minor
+            painter->setPen(QPen(QColor(220, 220, 220), 1)); // Minor (was gridSettings.color)
         }
         painter->drawLine(QLineF(r.left(), y, r.right(), y));
     }
@@ -226,7 +227,7 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
             font.setBold(true);
             font.setPointSize(9);
             painter->setFont(font);
-            QRectF idRect(pos.x() - 16, pos.y() - 26, 32, 14);
+            QRectF idRect(pos.x() - 16, pos.y() + appearanceSettings.idOffsetY, 32, 14);
             painter->drawText(idRect, Qt::AlignCenter, QString::number(loc.id));
             // Draw label below (max 7 chars)
             QString label = loc.label;
@@ -234,7 +235,7 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
             font.setBold(false);
             font.setPointSize(8);
             painter->setFont(font);
-            QRectF labelRect(pos.x() - 16, pos.y() + 12, 32, 14);
+            QRectF labelRect(pos.x() - 16, pos.y() + appearanceSettings.labelOffsetY, 32, 14);
             painter->setPen(Qt::darkGray);
             painter->drawText(labelRect, Qt::AlignCenter, label);
         }
