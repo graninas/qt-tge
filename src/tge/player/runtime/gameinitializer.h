@@ -68,14 +68,19 @@ public:
             }
         }
 
-        // Step 4: Fill outgoingEdges for each location
+        // Step 4: Fill outgoingEdges and incomingEdges for each location
         for (auto& locPair : state.locations) {
             auto& locState = locPair.second;
             int locId = locState->def->id;
             for (auto& edgePair : state.edges) {
                 auto& edgeState = edgePair.second;
-                if (edgeState->def && edgeState->def->fromLocation == locId) {
-                    locState->outgoingEdges.push_back(edgeState.get());
+                if (edgeState->def) {
+                    if (edgeState->def->fromLocation == locId) {
+                        locState->outgoingEdges.push_back(edgeState.get());
+                    }
+                    if (edgeState->def->toLocation == locId) {
+                        locState->incomingEdges.push_back(edgeState.get());
+                    }
                 }
             }
         }

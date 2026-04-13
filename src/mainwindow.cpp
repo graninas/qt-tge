@@ -1,7 +1,7 @@
 #include "mainwindow.h"
 #include "ui/ui_mainwindow.h"
 #include "graphwidget.h"
-#include "graphmodel.h"
+#include "gui_model.h"
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -12,7 +12,7 @@ MainWindow::MainWindow(QWidget *parent)
     graphWidget = new GraphWidget(this);
     setCentralWidget(graphWidget);
     // Create and set the static test graph
-    static GraphModel model = GraphModel::makeTestGraph();
+    static UiModel model = UiModel::makeTestGraph();
     graphWidget->setModel(&model);
 }
 

@@ -1,6 +1,7 @@
 #include "graphwidget.h"
 #include "graphwidget_helpers.h"
 #include "tge/domain.h"
+#include "gui_model.h"
 #include <QWheelEvent>
 #include <QPainter>
 #include <cmath>
@@ -29,7 +30,7 @@ void GraphWidget::centerOnObservedVirtualPoint()
     }
 }
 
-void GraphWidget::setModel(GraphModel *m, const AppearanceSettings& appearance)
+void GraphWidget::setModel(UiModel *m, const AppearanceSettings& appearance)
 {
     model = m;
     appearanceSettings = appearance;
@@ -51,10 +52,12 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         t.scale(viewScale, viewScale);
         QPointF mouseScene = t.inverted().map(event->pos());
         double step = gridSettings.scale;
-        for (int i = 0; i < model->locations.size(); ++i) {
-            QPointF pos(model->locations[i].coordX * step, model->locations[i].coordY * step);
+        for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
+            int id = it.key();
+            const auto& loc = it.value();
+            QPointF pos(loc.coordX * step, loc.coordY * step);
             if (QLineF(mouseScene, pos).length() <= 10) {
-                draggingDot = i;
+                draggingDot = id;
                 dragOffset = mouseScene - pos;
                 setCursor(Qt::OpenHandCursor);
                 event->accept();
@@ -82,8 +85,8 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
         QPointF mouseScene = t.inverted().map(event->pos());
         double step = gridSettings.scale;
         QPointF newPos = mouseScene - dragOffset;
-        model->locations[draggingDot].coordX = newPos.x() / step;
-        model->locations[draggingDot].coordY = newPos.y() / step;
+        model->gameDef.locations[draggingDot].coordX = newPos.x() / step;
+        model->gameDef.locations[draggingDot].coordY = newPos.y() / step;
         viewport()->update();
         event->accept();
         return;
@@ -102,8 +105,8 @@ void GraphWidget::mouseReleaseEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton && draggingDot != -1 && model) {
         double step = gridSettings.scale;
         // Snap to grid
-        model->locations[draggingDot].coordX = std::round(model->locations[draggingDot].coordX);
-        model->locations[draggingDot].coordY = std::round(model->locations[draggingDot].coordY);
+        model->gameDef.locations[draggingDot].coordX = std::round(model->gameDef.locations[draggingDot].coordX);
+        model->gameDef.locations[draggingDot].coordY = std::round(model->gameDef.locations[draggingDot].coordY);
         draggingDot = -1;
         setCursor(Qt::ArrowCursor);
         viewport()->update();

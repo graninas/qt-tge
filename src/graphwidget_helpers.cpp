@@ -6,6 +6,10 @@
 #include <QPainterPath>
 #include <map>
 #include <tuple>
+#include <set>
+#include "gui_model.h"
+
+using namespace tge::domain;
 
 namespace graphwidget_helpers {
 const QColor LOCATION_COLOR_PALETTE[LOCATION_COLOR_COUNT] = {
@@ -78,18 +82,19 @@ void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, do
     painter->drawPolygon(arrowHead);
 }
 
-void drawEdgeStraight(QPainter *painter, const GraphModel *model, const tge::domain::EdgeDef &edge, double step) {
-    const auto from = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.fromLocation;});
-    const auto to = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.toLocation;});
-    if (from != model->locations.end() && to != model->locations.end()) {
-        QPointF p1(from->coordX * step, from->coordY * step);
-        QPointF p2(to->coordX * step, to->coordY * step);
+void drawEdgeStraight(QPainter *painter, const UiModel *model, const tge::domain::EdgeDef &edge, double step) {
+    const auto& locations = model->gameDef.locations;
+    auto from = locations.find(edge.fromLocation);
+    auto to = locations.find(edge.toLocation);
+    if (from != locations.end() && to != locations.end()) {
+        QPointF p1(from.value().coordX * step, from.value().coordY * step);
+        QPointF p2(to.value().coordX * step, to.value().coordY * step);
         painter->drawLine(p1, p2);
         drawArrowHead(painter, p1, p2, 14.0, 14.0);
     }
 }
 
-// Draw a curved edge between two points, with a simple fixed offset for debugging
+// Draw a curved edge between two points, with a simple fixed offset
 void drawEdgeCurvedSimple(QPainter *painter, const QPointF &p1, const QPointF &p2, double offset = 40.0) {
     QPointF mid = (p1 + p2) / 2.0;
     double dx = p2.x() - p1.x();
@@ -107,60 +112,67 @@ void drawEdgeCurvedSimple(QPainter *painter, const QPointF &p1, const QPointF &p
     drawArrowHead(painter, ctrl, p2, 14.0, 14.0);
 }
 
-// Helper to group and index parallel edges
-static void computeParallelEdgeInfo(const GraphModel* model, std::map<std::pair<int, int>, std::vector<int>>& edgeGroups, std::map<int, std::pair<int, int>>& edgeIndexAndCount) {
-    // Group edge ids by (from, to)
-    for (int i = 0; i < model->edges.size(); ++i) {
-        const auto& edge = model->edges[i];
-        edgeGroups[{edge.fromLocation, edge.toLocation}].push_back(i);
+// Helper: assign symmetric offsets to all edges between each unordered node pair
+static void computeRepellingOffsets(const UiModel* model, std::map<int, double>& edgeOffset) {
+    double baseOffset = 40.0;
+    // Group all edges by unordered node pair
+    std::map<std::pair<int, int>, std::vector<int>> pairToEdgeIds;
+    for (auto it = model->gameDef.edges.constBegin(); it != model->gameDef.edges.constEnd(); ++it) {
+        int i = it.key();
+        const auto& edge = it.value();
+        int a = std::min(edge.fromLocation, edge.toLocation);
+        int b = std::max(edge.fromLocation, edge.toLocation);
+        pairToEdgeIds[{a, b}].push_back(i);
     }
-    // For each edge, store (index among siblings, total siblings)
-    for (const auto& group : edgeGroups) {
+    // For each group, assign offsets regularly spaced in [-N/2, +N/2]
+    for (const auto& group : pairToEdgeIds) {
         const auto& ids = group.second;
-        int count = ids.size();
-        for (int idx = 0; idx < count; ++idx) {
-            edgeIndexAndCount[ids[idx]] = {idx, count};
+        int N = ids.size();
+        std::vector<int> sortedIds = ids;
+        std::sort(sortedIds.begin(), sortedIds.end());
+        double start = -(N - 1) / 2.0;
+        for (int idx = 0; idx < N; ++idx) {
+            edgeOffset[sortedIds[idx]] = (start + idx) * baseOffset;
         }
     }
 }
 
-void drawEdges(QPainter *painter, const GraphModel *model, double step) {
-    std::map<std::pair<int, int>, std::vector<int>> edgeGroups;
-    std::map<int, std::pair<int, int>> edgeIndexAndCount;
-    computeParallelEdgeInfo(model, edgeGroups, edgeIndexAndCount);
-    for (int i = 0; i < model->edges.size(); ++i) {
-        const auto& edge = model->edges[i];
-        const auto from = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.fromLocation;});
-        const auto to = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.toLocation;});
-        if (from != model->locations.end() && to != model->locations.end()) {
-            QPointF p1(from->coordX * step, from->coordY * step);
-            QPointF p2(to->coordX * step, to->coordY * step);
-            auto idxCountIt = edgeIndexAndCount.find(i);
-            if (idxCountIt != edgeIndexAndCount.end()) {
-                int idx = idxCountIt->second.first;
-                int count = idxCountIt->second.second;
-                if (count == 1) {
-                    // Single edge: straight line
-                    painter->setPen(QPen(Qt::darkGreen, 2));
-                    painter->drawLine(p1, p2);
-                    drawArrowHead(painter, p1, p2, 14.0, 14.0);
-                } else {
-                    // Multiple edges: curve, alternate side and increase offset
-                    double baseOffset = 40.0;
-                    int sign = (idx % 2 == 0) ? 1 : -1;
-                    int k = (idx + 1) / 2;
-                    double offset = sign * k * baseOffset;
-                    // If even count, spread symmetrically
-                    if (count % 2 == 0 && idx % 2 == 1) offset = -offset;
-                    drawEdgeCurvedSimple(painter, p1, p2, offset);
-                }
+void drawEdges(QPainter *painter, const UiModel *model, double step) {
+    std::map<int, double> edgeOffset;
+    computeRepellingOffsets(model, edgeOffset);
+    std::set<std::pair<int, int>> drawnPairs;
+    for (auto it = model->gameDef.edges.constBegin(); it != model->gameDef.edges.constEnd(); ++it) {
+        int i = it.key();
+        const auto& edge = it.value();
+        int a = edge.fromLocation;
+        int b = edge.toLocation;
+        std::pair<int, int> pairKey = std::minmax(a, b);
+        // Draw each edge only once (by direction or by id)
+        std::pair<int, int> ab(edge.fromLocation, edge.toLocation);
+        std::pair<int, int> ba(edge.toLocation, edge.fromLocation);
+        if (drawnPairs.count(ab) && drawnPairs.count(ba)) continue;
+        drawnPairs.insert(ab);
+        const auto& locations = model->gameDef.locations;
+        auto from = locations.find(edge.fromLocation);
+        auto to = locations.find(edge.toLocation);
+        if (from != locations.end() && to != locations.end()) {
+            QPointF p1(from.value().coordX * step, from.value().coordY * step);
+            QPointF p2(to.value().coordX * step, to.value().coordY * step);
+            double offset = edgeOffset[i];
+            if (offset == 0.0) {
+                painter->setPen(QPen(Qt::darkGreen, 2));
+                painter->drawLine(p1, p2);
+                drawArrowHead(painter, p1, p2, 14.0, 14.0);
+            } else {
+                drawEdgeCurvedSimple(painter, p1, p2, offset);
             }
         }
     }
 }
 
-void drawLocations(QPainter *painter, const GraphModel *model, double step, int idOffsetY, int labelOffsetY) {
-    for (const auto &loc : model->locations) {
+void drawLocations(QPainter *painter, const UiModel *model, double step, int idOffsetY, int labelOffsetY) {
+    for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
+        const auto& loc = it.value();
         QPointF pos(loc.coordX * step, loc.coordY * step);
         // Draw color circle if color is set
         if (loc.color >= 0 && loc.color < LOCATION_COLOR_COUNT) {

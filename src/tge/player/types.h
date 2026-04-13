@@ -32,6 +32,7 @@ struct LocationState {
     const LocationDef* def; // Reference to static definition
     std::vector<VariableState> localVariables;
     std::vector<EdgeState*> outgoingEdges;
+    std::vector<EdgeState*> incomingEdges; // New: pointers to incoming edges
 };
 
 // Dynamic game state

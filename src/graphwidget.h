@@ -10,15 +10,17 @@
 #include <QPainter>
 #include <cmath>
 #include <QScrollBar>
-#include "graphmodel.h"
+#include "gui_model.h"
 
+
+class UiModel;
 
 class GraphWidget : public QGraphicsView
 {
     Q_OBJECT
 public:
     explicit GraphWidget(QWidget *parent = nullptr);
-    void setModel(GraphModel *model, const AppearanceSettings& appearance = AppearanceSettings());
+    void setModel(UiModel *model, const AppearanceSettings& appearance = AppearanceSettings());
 
 protected:
     void wheelEvent(QWheelEvent *event) override;
@@ -45,7 +47,7 @@ private:
 
     int draggingDot = -1; // -1: none, 0: dot1, 1: dot2
     QPointF dragOffset;   // Offset from mouse to dot center
-    GraphModel *model = nullptr;
+    UiModel *model = nullptr;
 };
 
 #endif // GRAPHWIDGET_H
