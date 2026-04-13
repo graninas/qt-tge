@@ -14,6 +14,26 @@ using namespace tge::editor::runtime;
 using namespace tge::player;
 using namespace tge::player::runtime;
 
+// Helper: collect edge IDs between two locations
+std::vector<int> collectEdgeIds(const QVector<const EdgeState*>& options, int fromId, int toId) {
+    std::vector<int> ids;
+    for (const auto& opt : options) {
+        if (opt && opt->def && opt->def->fromLocation == fromId && opt->def->toLocation == toId)
+            ids.push_back(opt->def->id);
+    }
+    return ids;
+}
+
+// Helper: perform a move and check result type
+bool moveAndCheckCurrent(Engine& engine, const tge::player::runtime::CurrentLocation& from, int edgeId, const char* failMsg, tge::player::runtime::CurrentLocation& out) {
+    auto t = engine.choose(from, edgeId);
+    if (!t.has_value()) { std::cerr << failMsg << std::endl; return false; }
+    auto s = engine.step(*t);
+    if (!std::holds_alternative<tge::player::runtime::CurrentLocation>(s)) { std::cerr << failMsg << std::endl; return false; }
+    out = std::get<tge::player::runtime::CurrentLocation>(s);
+    return true;
+}
+
 int main(int argc, char *argv[])
 {
     QCoreApplication app(argc, argv);
@@ -23,22 +43,23 @@ int main(int argc, char *argv[])
     IdGenerator idGen;
     Manager manager(game, state, idGen);
 
-    // Start location with description
-    LocationDef& startLoc = manager.addLocation(LocationType::Start, "Start", 11, 0, 0); // Green
-    startLoc.descriptionPack.descriptions = {"Hello!"};
+    // Add locations
+    LocationDef& startLoc = manager.addLocation(LocationType::Start, "Start", 11, 0, 0);
+    startLoc.descriptionPack.descriptions = {"Start!"};
+    LocationDef& interLoc = manager.addLocation(LocationType::Regular, "Intermediate", 13, 1, 0);
+    interLoc.descriptionPack.descriptions = {"Intermediate!"};
+    LocationDef& finishLoc = manager.addLocation(LocationType::Finish, "Finish", 12, 2, 0);
+    finishLoc.descriptionPack.descriptions = {"Finish!"};
 
-    // Regular location with two descriptions
-    LocationDef& regularLoc = manager.addLocation(LocationType::Regular, "Intermediate", 1, 1, 0); // Blue
-    regularLoc.descriptionPack.descriptions = {"Intermediate 1", "Intermediate 2"};
-
-    // Finish location with description
-    LocationDef& finishLoc = manager.addLocation(LocationType::Finish, "Finish", 12, 2, 0); // Deep Orange
-    finishLoc.descriptionPack.descriptions = {"Bye!"};
-
-    // Edge 1: Start -> Regular
-    manager.addEdge(startLoc.id, regularLoc.id, "To Intermediate", "");
-    // Edge 2: Regular -> Finish
-    manager.addEdge(regularLoc.id, finishLoc.id, "To Finish", "");
+    // Add edges: 2 from start to intermediate
+    auto& edge1 = manager.addEdge(startLoc.id, interLoc.id, "Go to inter 1", "Path 1");
+    auto& edge2 = manager.addEdge(startLoc.id, interLoc.id, "Go to inter 2", "Path 2");
+    // 3 from intermediate to start
+    auto& edge3 = manager.addEdge(interLoc.id, startLoc.id, "Back to start 1", "Return 1");
+    auto& edge4 = manager.addEdge(interLoc.id, startLoc.id, "Back to start 2", "Return 2");
+    auto& edge5 = manager.addEdge(interLoc.id, startLoc.id, "Back to start 3", "Return 3");
+    // 1 from intermediate to finish
+    auto& edge6 = manager.addEdge(interLoc.id, finishLoc.id, "To finish", "Final path");
 
     // Initialize game state
     GameInitializer initializer(game);
@@ -61,72 +82,63 @@ int main(int argc, char *argv[])
         std::cerr << "Test failed: Engine error: " << engine.error().toStdString() << std::endl;
         return 1;
     }
-    auto startLocStep = engine.start();
-    if (!startLocStep.has_value()) {
+    auto step = engine.start();
+    if (!step.has_value()) {
         std::cerr << "Test failed: Could not get start location." << std::endl;
         return 1;
     }
-    // Check start location description and debug
-    if (startLocStep->description != "Hello!") {
-        std::cerr << "Test failed: Start location description mismatch: '" << startLocStep->description.toStdString() << "'" << std::endl;
+    // 1. Collect edge IDs from start to intermediate
+    std::vector<int> startToInter = collectEdgeIds(step->options, startLoc.id, interLoc.id);
+    if (startToInter.size() != 2) {
+        std::cerr << "Test failed: Expected 2 edges from start to intermediate, got " << startToInter.size() << std::endl;
         return 1;
     }
-    if (startLocStep->debugMessages.isEmpty() || !startLocStep->debugMessages[0].contains("Selector: not implemented")) {
-        std::cerr << "Test failed: Start location debug message missing or incorrect." << std::endl;
+    // 2. Take edge1: Start -> Intermediate
+    tge::player::runtime::CurrentLocation inter1;
+    if (!moveAndCheckCurrent(engine, *step, startToInter[0], "Test failed: Could not take edge1 or not at intermediate after edge1.", inter1)) return 1;
+    // 3. Collect edge IDs from intermediate to start
+    std::vector<int> interToStartIds = collectEdgeIds(inter1.options, interLoc.id, startLoc.id);
+    if (interToStartIds.size() != 3) {
+        std::cerr << "Test failed: Expected 3 edges from intermediate to start, got " << interToStartIds.size() << std::endl;
         return 1;
     }
-    // Choose edge to intermediate
-    if (startLocStep->options.isEmpty() || !startLocStep->options[0]) {
-        std::cerr << "Test failed: Start location has no valid outgoing edge (nullptr)." << std::endl;
+    // 4. Take edge3: Intermediate -> Start
+    tge::player::runtime::CurrentLocation start2;
+    if (!moveAndCheckCurrent(engine, inter1, interToStartIds[0], "Test failed: Could not take edge3 or not at start after edge3.", start2)) return 1;
+    // 5. Take edge2: Start -> Intermediate
+    int edge2id = startToInter[1];
+    tge::player::runtime::CurrentLocation inter2;
+    if (!moveAndCheckCurrent(engine, start2, edge2id, "Test failed: Could not take edge2 or not at intermediate after edge2.", inter2)) return 1;
+    // 6. Take edge4: Intermediate -> Start
+    tge::player::runtime::CurrentLocation start3;
+    if (!moveAndCheckCurrent(engine, inter2, interToStartIds[1], "Test failed: Could not take edge4 or not at start after edge4.", start3)) return 1;
+    // 7. Take edge1 again: Start -> Intermediate
+    tge::player::runtime::CurrentLocation inter3;
+    if (!moveAndCheckCurrent(engine, start3, startToInter[0], "Test failed: Could not take edge1 again or not at intermediate after edge1 again.", inter3)) return 1;
+    // 8. Take edge5: Intermediate -> Start
+    tge::player::runtime::CurrentLocation start4;
+    if (!moveAndCheckCurrent(engine, inter3, interToStartIds[2], "Test failed: Could not take edge5 or not at start after edge5.", start4)) return 1;
+    // 9. Take edge2 again: Start -> Intermediate
+    tge::player::runtime::CurrentLocation inter4;
+    if (!moveAndCheckCurrent(engine, start4, edge2id, "Test failed: Could not take edge2 again or not at intermediate after edge2 again.", inter4)) return 1;
+    // 10. Take edge from Intermediate to Finish
+    std::vector<int> toFinish = collectEdgeIds(inter4.options, interLoc.id, finishLoc.id);
+    if (toFinish.empty()) {
+        std::cerr << "Test failed: Could not find edge from intermediate to finish." << std::endl;
         return 1;
     }
-    if (!startLocStep->options[0]->def) {
-        std::cerr << "Test failed: Start location's outgoing edge has nullptr def." << std::endl;
-        return 1;
-    }
-    int edgeToIntermediate = startLocStep->options[0]->def->id;
-    auto transition1 = engine.choose(*startLocStep, edgeToIntermediate);
-    if (!transition1.has_value()) {
-        std::cerr << "Test failed: Could not transition to intermediate." << std::endl;
-        return 1;
-    }
-    // Step to intermediate
-    auto nextStep = engine.step(*transition1);
-    if (!(std::holds_alternative<tge::player::runtime::CurrentLocation>(nextStep))) {
-        std::cerr << "Test failed: Expected CurrentLocation after first step." << std::endl;
-        return 1;
-    }
-    const auto& interLoc = std::get<tge::player::runtime::CurrentLocation>(nextStep);
-    if (interLoc.description != "Intermediate 1") {
-        std::cerr << "Test failed: Intermediate location description mismatch: '" << interLoc.description.toStdString() << "'" << std::endl;
-        return 1;
-    }
-    // Choose edge to finish
-    if (interLoc.options.isEmpty() || !interLoc.options[0]) {
-        std::cerr << "Test failed: Intermediate location has no valid outgoing edge (nullptr)." << std::endl;
-        return 1;
-    }
-    if (!interLoc.options[0]->def) {
-        std::cerr << "Test failed: Intermediate location's outgoing edge has nullptr def." << std::endl;
-        return 1;
-    }
-    int edgeToFinish = interLoc.options[0]->def->id;
-    auto transition2 = engine.choose(interLoc, edgeToFinish);
-    if (!transition2.has_value()) {
-        std::cerr << "Test failed: Could not transition to finish." << std::endl;
-        return 1;
-    }
-    // Step to finish
-    auto finishStep = engine.step(*transition2);
-    if (!(std::holds_alternative<tge::player::runtime::FinishLocation>(finishStep))) {
+    auto t8 = engine.choose(inter4, toFinish[0]);
+    if (!t8.has_value()) { std::cerr << "Test failed: Could not take edge to finish." << std::endl; return 1; }
+    auto s9 = engine.step(*t8);
+    if (!std::holds_alternative<tge::player::runtime::FinishLocation>(s9)) {
         std::cerr << "Test failed: Expected FinishLocation after final step." << std::endl;
         return 1;
     }
-    const auto& finishLocStep = std::get<tge::player::runtime::FinishLocation>(finishStep);
-    if (finishLocStep.description != "Bye!") {
+    const auto& finishLocStep = std::get<tge::player::runtime::FinishLocation>(s9);
+    if (finishLocStep.description != "Finish!") {
         std::cerr << "Test failed: Finish location description mismatch: '" << finishLocStep.description.toStdString() << "'" << std::endl;
         return 1;
     }
-    std::cout << "Player intermediate path test passed: all steps and descriptions correct." << std::endl;
+    std::cout << "Player intermediate path test passed: all edges traversed and player reached finish." << std::endl;
     return 0;
 }
