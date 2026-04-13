@@ -4,6 +4,8 @@
 #include <algorithm>
 #include "tge/domain.h"
 #include <QPainterPath>
+#include <map>
+#include <tuple>
 
 namespace graphwidget_helpers {
 const QColor LOCATION_COLOR_PALETTE[LOCATION_COLOR_COUNT] = {
@@ -105,14 +107,54 @@ void drawEdgeCurvedSimple(QPainter *painter, const QPointF &p1, const QPointF &p
     drawArrowHead(painter, ctrl, p2, 14.0, 14.0);
 }
 
+// Helper to group and index parallel edges
+static void computeParallelEdgeInfo(const GraphModel* model, std::map<std::pair<int, int>, std::vector<int>>& edgeGroups, std::map<int, std::pair<int, int>>& edgeIndexAndCount) {
+    // Group edge ids by (from, to)
+    for (int i = 0; i < model->edges.size(); ++i) {
+        const auto& edge = model->edges[i];
+        edgeGroups[{edge.fromLocation, edge.toLocation}].push_back(i);
+    }
+    // For each edge, store (index among siblings, total siblings)
+    for (const auto& group : edgeGroups) {
+        const auto& ids = group.second;
+        int count = ids.size();
+        for (int idx = 0; idx < count; ++idx) {
+            edgeIndexAndCount[ids[idx]] = {idx, count};
+        }
+    }
+}
+
 void drawEdges(QPainter *painter, const GraphModel *model, double step) {
-    for (const auto &edge : model->edges) {
+    std::map<std::pair<int, int>, std::vector<int>> edgeGroups;
+    std::map<int, std::pair<int, int>> edgeIndexAndCount;
+    computeParallelEdgeInfo(model, edgeGroups, edgeIndexAndCount);
+    for (int i = 0; i < model->edges.size(); ++i) {
+        const auto& edge = model->edges[i];
         const auto from = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.fromLocation;});
         const auto to = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.toLocation;});
         if (from != model->locations.end() && to != model->locations.end()) {
             QPointF p1(from->coordX * step, from->coordY * step);
             QPointF p2(to->coordX * step, to->coordY * step);
-            drawEdgeCurvedSimple(painter, p1, p2);
+            auto idxCountIt = edgeIndexAndCount.find(i);
+            if (idxCountIt != edgeIndexAndCount.end()) {
+                int idx = idxCountIt->second.first;
+                int count = idxCountIt->second.second;
+                if (count == 1) {
+                    // Single edge: straight line
+                    painter->setPen(QPen(Qt::darkGreen, 2));
+                    painter->drawLine(p1, p2);
+                    drawArrowHead(painter, p1, p2, 14.0, 14.0);
+                } else {
+                    // Multiple edges: curve, alternate side and increase offset
+                    double baseOffset = 40.0;
+                    int sign = (idx % 2 == 0) ? 1 : -1;
+                    int k = (idx + 1) / 2;
+                    double offset = sign * k * baseOffset;
+                    // If even count, spread symmetrically
+                    if (count % 2 == 0 && idx % 2 == 1) offset = -offset;
+                    drawEdgeCurvedSimple(painter, p1, p2, offset);
+                }
+            }
         }
     }
 }
