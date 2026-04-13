@@ -30,14 +30,15 @@ int main(int argc, char *argv[])
     GameDef game;
     game.name = "TestGame";
     game.description = "A test game with two nodes.";
-    game.locations = {startLoc, finishLoc};
+    game.locations[startLoc.id] = startLoc;
+    game.locations[finishLoc.id] = finishLoc;
 
     // Verify structure
     if (game.locations.size() != 2) {
         std::cerr << "Test failed: Expected 2 locations." << std::endl;
         return 1;
     }
-    if (game.locations[0].type != LocationType::Start || game.locations[1].type != LocationType::Finish) {
+    if (game.locations[startLoc.id].type != LocationType::Start || game.locations[finishLoc.id].type != LocationType::Finish) {
         std::cerr << "Test failed: Incorrect location types." << std::endl;
         return 1;
     }

@@ -55,7 +55,7 @@ struct LocationDef {
     LocationType type;
     DescriptionPack descriptionPack;
     QVector<VariableDef> localVariables;
-    QVector<EdgeDef> outgoingEdges;
+    QVector<int> outgoingEdges; // Now stores edge ids
     // UX domain model fields (editor only)
     int coordX, coordY;
     QString label;
@@ -66,7 +66,8 @@ struct LocationDef {
 struct GameDef {
     QString name;
     QString description;
-    QVector<LocationDef> locations;
+    QMap<int, LocationDef> locations; // id -> location
+    QMap<int, EdgeDef> edges; // id -> edge
     QVector<VariableDef> globalVariables;
 };
 

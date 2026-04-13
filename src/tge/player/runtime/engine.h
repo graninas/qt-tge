@@ -36,7 +36,7 @@ public:
         : m_gameDef(gameDef), m_initializer(gameDef) {
         GameInitResult result = m_initializer.initialize();
         if (result.state.has_value()) {
-            m_state = result.state.value();
+            m_state = std::move(result.state.value());
         } else {
             m_error = result.error;
         }
@@ -58,8 +58,8 @@ public:
             result.debugMessages.append("No descriptions available.");
         }
         // Add outgoing edges as options
-        for (const auto& edge : m_state.startLocation->outgoingEdges) {
-            result.options.append(&edge);
+        for (const auto* edge : m_state.startLocation->outgoingEdges) {
+            result.options.append(edge);
         }
         return result;
     }
@@ -133,8 +133,8 @@ public:
                 next.debugMessages = transition.debugMessages;
                 next.debugMessages.append("No descriptions available.");
             }
-            for (const auto& edge : loc->outgoingEdges) {
-                next.options.append(&edge);
+            for (const auto* edge : loc->outgoingEdges) {
+                next.options.append(edge);
             }
             return next;
         }

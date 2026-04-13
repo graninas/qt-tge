@@ -22,19 +22,24 @@ public:
         loc.color = color;
         loc.coordX = x;
         loc.coordY = y;
-        m_game.locations.append(loc);
-        return m_game.locations.last();
+        m_game.locations[loc.id] = loc;
+        return m_game.locations[loc.id];
     }
 
     // Delete a location by id
     void deleteLocation(int id) {
-        for (int i = 0; i < m_game.locations.size(); ++i) {
-            if (m_game.locations[i].id == id) {
-                m_game.locations.remove(i);
-                break;
+        m_game.locations.remove(id);
+        // Optionally: remove edges pointing to/from this location
+        // Remove outgoing edges from this location
+        QVector<int> toRemove;
+        for (auto it = m_game.edges.begin(); it != m_game.edges.end(); ++it) {
+            if (it.value().fromLocation == id || it.value().toLocation == id) {
+                toRemove.append(it.key());
             }
         }
-        // Optionally: remove edges pointing to/from this location
+        for (int edgeId : toRemove) {
+            m_game.edges.remove(edgeId);
+        }
     }
 
     // Add an edge between two locations
@@ -45,27 +50,35 @@ public:
         edge.toLocation = toId;
         edge.optionText = optionText;
         edge.transitionText = transitionText;
-        for (auto& loc : m_game.locations) {
-            if (loc.id == fromId) {
-                loc.outgoingEdges.append(edge);
-                return loc.outgoingEdges.last();
-            }
+        m_game.edges[edge.id] = edge;
+        // Add edge id to the location's outgoingEdges
+        if (m_game.locations.contains(fromId)) {
+            m_game.locations[fromId].outgoingEdges.append(edge.id);
         }
-        throw std::runtime_error("fromId not found");
+        return m_game.edges[edge.id];
     }
 
-    // Delete an edge by id from a location
-    void deleteEdge(int fromId, int edgeId) {
-        for (auto& loc : m_game.locations) {
-            if (loc.id == fromId) {
-                for (int i = 0; i < loc.outgoingEdges.size(); ++i) {
-                    if (loc.outgoingEdges[i].id == edgeId) {
-                        loc.outgoingEdges.remove(i);
-                        return;
-                    }
-                }
-            }
+    // Delete an edge by id
+    void deleteEdge(int edgeId) {
+        if (!m_game.edges.contains(edgeId)) return;
+        int fromId = m_game.edges[edgeId].fromLocation;
+        if (m_game.locations.contains(fromId)) {
+            auto& out = m_game.locations[fromId].outgoingEdges;
+            out.erase(std::remove(out.begin(), out.end(), edgeId), out.end());
         }
+        m_game.edges.remove(edgeId);
+    }
+
+    // --- Static helpers ---
+    static domain::LocationDef& getLocation(int locationId, domain::GameDef& game) {
+        return game.locations[locationId];
+    }
+    static domain::EdgeDef& getEdge(int edgeId, domain::GameDef& game) {
+        return game.edges[edgeId];
+    }
+    static std::pair<domain::LocationDef&, domain::LocationDef&> getEdgeLocations(int edgeId, domain::GameDef& game) {
+        auto& edge = game.edges[edgeId];
+        return { game.locations[edge.fromLocation], game.locations[edge.toLocation] };
     }
 
 private:

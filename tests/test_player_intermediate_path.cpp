@@ -53,6 +53,7 @@ int main(int argc, char *argv[])
         std::cerr << std::endl;
         return 1;
     }
+    GameState state_ = std::move(result.state.value());
 
     // Use the engine to step through the game
     Engine engine(game);
@@ -75,6 +76,14 @@ int main(int argc, char *argv[])
         return 1;
     }
     // Choose edge to intermediate
+    if (startLocStep->options.isEmpty() || !startLocStep->options[0]) {
+        std::cerr << "Test failed: Start location has no valid outgoing edge (nullptr)." << std::endl;
+        return 1;
+    }
+    if (!startLocStep->options[0]->def) {
+        std::cerr << "Test failed: Start location's outgoing edge has nullptr def." << std::endl;
+        return 1;
+    }
     int edgeToIntermediate = startLocStep->options[0]->def->id;
     auto transition1 = engine.choose(*startLocStep, edgeToIntermediate);
     if (!transition1.has_value()) {
@@ -93,6 +102,14 @@ int main(int argc, char *argv[])
         return 1;
     }
     // Choose edge to finish
+    if (interLoc.options.isEmpty() || !interLoc.options[0]) {
+        std::cerr << "Test failed: Intermediate location has no valid outgoing edge (nullptr)." << std::endl;
+        return 1;
+    }
+    if (!interLoc.options[0]->def) {
+        std::cerr << "Test failed: Intermediate location's outgoing edge has nullptr def." << std::endl;
+        return 1;
+    }
     int edgeToFinish = interLoc.options[0]->def->id;
     auto transition2 = engine.choose(interLoc, edgeToFinish);
     if (!transition2.has_value()) {

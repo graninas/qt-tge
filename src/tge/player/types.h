@@ -1,8 +1,10 @@
 #ifndef TGE_PLAYER_TYPES_H
 #define TGE_PLAYER_TYPES_H
 
-#include <QVector>
+#include <vector>
+#include <unordered_map>
 #include <QString>
+#include <memory>
 #include "../../tge/domain.h"
 
 namespace tge {
@@ -28,14 +30,20 @@ struct EdgeState {
 // Dynamic location state
 struct LocationState {
     const LocationDef* def; // Reference to static definition
-    QVector<VariableState> localVariables;
-    QVector<EdgeState> outgoingEdges;
+    std::vector<VariableState> localVariables;
+    std::vector<EdgeState*> outgoingEdges;
 };
 
-// Dynamic game state (can be extended)
+// Dynamic game state
 struct GameState {
-    QVector<LocationState> locations;
+    std::unordered_map<int, std::unique_ptr<LocationState>> locations; // Map from id to unique_ptr<LocationState>
+    std::unordered_map<int, std::unique_ptr<EdgeState>> edges; // Map from id to unique_ptr<EdgeState>
     LocationState* startLocation = nullptr;
+    GameState() = default;
+    GameState(const GameState&) = delete;
+    GameState& operator=(const GameState&) = delete;
+    GameState(GameState&&) = default;
+    GameState& operator=(GameState&&) = default;
 };
 
 } // namespace player

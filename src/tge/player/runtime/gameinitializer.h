@@ -21,54 +21,66 @@ public:
 
     GameInitResult initialize() {
         GameInitResult result;
-        // Example error check: must have at least one location
-        if (m_gameDef.locations.isEmpty()) {
+        if (m_gameDef.locations.empty()) {
             result.error = QString("GameDef must have at least one location");
             return result;
         }
         GameState state;
         state.startLocation = nullptr;
-        for (auto& locDef : m_gameDef.locations) {
-            LocationState locState;
-            locState.def = &locDef;
+
+        // Step 1: Create all LocationState objects
+        for (auto it = m_gameDef.locations.begin(); it != m_gameDef.locations.end(); ++it) {
+            const auto& locDef = it.value();
+            auto locState = std::make_unique<LocationState>();
+            locState->def = &locDef;
             for (const auto& varDef : locDef.localVariables) {
                 VariableState varState;
                 varState.def = &varDef;
                 varState.value = "";
-                locState.localVariables.append(varState);
+                locState->localVariables.push_back(varState);
             }
-            // For each static outgoing edge, create an EdgeState (toLocation set later)
-            for (const auto& edgeDef : locDef.outgoingEdges) {
-                EdgeState edgeState;
-                edgeState.def = &edgeDef;
-                edgeState.toLocation = nullptr; // Will be set after all locations are created
-                locState.outgoingEdges.append(edgeState);
-            }
-            // Set startLocation pointer while traversing
+            int locId = locDef.id;
             if (!state.startLocation && locDef.type == domain::LocationType::Start) {
-                state.locations.append(locState);
-                state.startLocation = &state.locations.last();
-            } else {
-                state.locations.append(locState);
+                state.startLocation = locState.get();
             }
+            state.locations.emplace(locId, std::move(locState));
         }
-        // Set toLocation pointers for all edges
-        // FIXME: This is O(N^2) and inefficient for large graphs. Consider optimizing with a map from id to LocationState.
-        // SUGGESTION: Build a QHash<int, LocationState*> mapping location id to pointer before this loop, then set edge.toLocation in O(1) per edge.
-        for (auto& loc : state.locations) {
-            for (auto& edge : loc.outgoingEdges) {
-                if (edge.def) {
-                    int toId = edge.def->toLocation;
-                    for (auto& targetLoc : state.locations) {
-                        if (targetLoc.def && targetLoc.def->id == toId) {
-                            edge.toLocation = &targetLoc;
-                            break;
-                        }
-                    }
+
+        // Step 2: Create all EdgeState objects
+        for (auto it = m_gameDef.edges.begin(); it != m_gameDef.edges.end(); ++it) {
+            const auto& edgeDef = it.value();
+            auto edgeState = std::make_unique<EdgeState>();
+            edgeState->def = &edgeDef;
+            edgeState->toLocation = nullptr; // Will be set in step 3
+            int edgeId = edgeDef.id;
+            state.edges.emplace(edgeId, std::move(edgeState));
+        }
+
+        // Step 3: Assign toLocation pointers for all edges
+        for (auto& edgePair : state.edges) {
+            auto& edgeState = edgePair.second;
+            if (edgeState->def) {
+                int toId = edgeState->def->toLocation;
+                auto locIt = state.locations.find(toId);
+                if (locIt != state.locations.end()) {
+                    edgeState->toLocation = locIt->second.get();
                 }
             }
         }
-        result.state = state;
+
+        // Step 4: Fill outgoingEdges for each location
+        for (auto& locPair : state.locations) {
+            auto& locState = locPair.second;
+            int locId = locState->def->id;
+            for (auto& edgePair : state.edges) {
+                auto& edgeState = edgePair.second;
+                if (edgeState->def && edgeState->def->fromLocation == locId) {
+                    locState->outgoingEdges.push_back(edgeState.get());
+                }
+            }
+        }
+
+        result.state = std::move(state);
         return result;
     }
 
