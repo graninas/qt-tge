@@ -12,7 +12,7 @@ find_package(Qt5 REQUIRED COMPONENTS Widgets Core)
 set(UI_FILES src/ui/mainwindow.ui)
 
 # Sources
-set(SOURCES src/main.cpp src/mainwindow.cpp src/graphwidget.cpp src/graphmodel.cpp)
+set(SOURCES src/main.cpp src/mainwindow.cpp src/graphwidget.cpp src/graphmodel.cpp src/graphwidget_helpers.cpp)
 set(HEADERS src/mainwindow.h src/graphwidget.h)
 
 set(CMAKE_AUTOMOC ON)
