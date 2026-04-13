@@ -33,7 +33,7 @@ private:
     void centerOnObservedVirtualPoint();
 
     struct GridSettings {
-        double scale = 50.0; // Cell size in pixels
+        double scale = 100.0; // Cell size in pixels
         QColor color = QColor(220, 220, 220); // Light gray
     };
 

@@ -14,7 +14,7 @@ public:
         : m_game(game), m_state(state), m_idGen(idGen) {}
 
     // Add a new location to the game
-    domain::LocationDef& addLocation(domain::LocationType type, const QString& label, const QString& color, int x, int y) {
+    domain::LocationDef& addLocation(domain::LocationType type, const QString& label, int color, int x, int y) {
         domain::LocationDef loc;
         loc.id = m_idGen.generateLocationId();
         loc.type = type;

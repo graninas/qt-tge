@@ -1,7 +1,27 @@
 #include "graphwidget.h"
+#include "tge/domain.h"
 #include <QWheelEvent>
 #include <QPainter>
 #include <cmath>
+
+constexpr int LOCATION_COLOR_COUNT = 15;
+const QColor LOCATION_COLOR_PALETTE[LOCATION_COLOR_COUNT] = {
+    QColor(255, 99, 132),   // Red
+    QColor(54, 162, 235),   // Blue
+    QColor(255, 206, 86),   // Yellow
+    QColor(75, 192, 192),   // Teal
+    QColor(153, 102, 255),  // Purple
+    QColor(255, 159, 64),   // Orange
+    QColor(199, 199, 199),  // Grey
+    QColor(255, 99, 255),   // Pink
+    QColor(99, 255, 132),   // Light Green
+    QColor(99, 132, 255),   // Light Blue
+    QColor(255, 219, 88),   // Gold
+    QColor(0, 200, 83),     // Green
+    QColor(255, 87, 34),    // Deep Orange
+    QColor(121, 85, 72),    // Brown
+    QColor(233, 30, 99)     // Magenta
+};
 
 GraphWidget::GraphWidget(QWidget *parent)
     : QGraphicsView(parent)
@@ -181,18 +201,42 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
         // Draw locations
         for (const auto &loc : model->locations) {
             QPointF pos(loc.coordX * step, loc.coordY * step);
-            QColor color(loc.color);
+            // Draw color circle if color is set
+            if (loc.color >= 0 && loc.color < LOCATION_COLOR_COUNT) {
+                painter->setPen(QPen(LOCATION_COLOR_PALETTE[loc.color], 4));
+            } else {
+                painter->setPen(QPen(Qt::lightGray, 2));
+            }
+            painter->setBrush(Qt::NoBrush);
+            painter->drawEllipse(pos, 14, 14);
+            // Fill color by type
+            QColor fillColor;
+            switch (loc.type) {
+                case tge::domain::LocationType::Start: fillColor = QColor(0, 200, 83); break; // Green
+                case tge::domain::LocationType::Finish: fillColor = QColor(255, 87, 34); break; // Orange
+                case tge::domain::LocationType::Service: fillColor = QColor(54, 162, 235); break; // Blue
+                default: fillColor = QColor(199, 199, 199); break; // Grey
+            }
             painter->setPen(QPen(Qt::black, 2));
-            painter->setBrush(QBrush(color));
+            painter->setBrush(QBrush(fillColor));
             painter->drawEllipse(pos, 10, 10);
-            // Draw label
-            painter->setPen(Qt::white);
+            // Draw id above
+            painter->setPen(Qt::black);
             QFont font = painter->font();
             font.setBold(true);
-            font.setPointSize(10);
+            font.setPointSize(9);
             painter->setFont(font);
-            QRectF labelRect(pos.x() - 8, pos.y() - 8, 16, 16);
-            painter->drawText(labelRect, Qt::AlignCenter, loc.label);
+            QRectF idRect(pos.x() - 16, pos.y() - 26, 32, 14);
+            painter->drawText(idRect, Qt::AlignCenter, QString::number(loc.id));
+            // Draw label below (max 7 chars)
+            QString label = loc.label;
+            if (label.length() > 7) label = label.left(7) + "…";
+            font.setBold(false);
+            font.setPointSize(8);
+            painter->setFont(font);
+            QRectF labelRect(pos.x() - 16, pos.y() + 12, 32, 14);
+            painter->setPen(Qt::darkGray);
+            painter->drawText(labelRect, Qt::AlignCenter, label);
         }
     }
     painter->restore();

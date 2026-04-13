@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
     startLoc.id = 0;
     startLoc.type = LocationType::Start;
     startLoc.label = "Start";
-    startLoc.color = "green";
+    startLoc.color = 11; // Green
     startLoc.coordX = 0;
     startLoc.coordY = 0;
 
@@ -22,7 +22,7 @@ int main(int argc, char *argv[])
     finishLoc.id = 1;
     finishLoc.type = LocationType::Finish;
     finishLoc.label = "Finish";
-    finishLoc.color = "red";
+    finishLoc.color = 12; // Deep Orange
     finishLoc.coordX = 1;
     finishLoc.coordY = 0;
 

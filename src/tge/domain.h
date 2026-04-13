@@ -47,6 +47,9 @@ struct EdgeDef {
 // Location definition
 enum class LocationType { Start, Regular, Service, Finish };
 
+constexpr int LOCATION_COLOR_NONE = -1;
+constexpr int LOCATION_COLOR_COUNT = 15;
+
 struct LocationDef {
     int id;
     LocationType type;
@@ -56,7 +59,7 @@ struct LocationDef {
     // UX domain model fields (editor only)
     int coordX, coordY;
     QString label;
-    QString color;
+    int color = LOCATION_COLOR_NONE; // Palette index, -1 means no color
 };
 
 // Game definition

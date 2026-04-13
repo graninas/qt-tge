@@ -10,7 +10,7 @@ GraphModel GraphModel::makeTestGraph() {
     loc1.type = LocationType::Start;
     loc1.coordX = 0; loc1.coordY = 0;
     loc1.label = QString::number(loc1.id);
-    loc1.color = "green";
+    loc1.color = 11; // Green (see palette)
     model.locations.append(loc1);
     // Location 2: Regular
     LocationDef loc2;
@@ -18,7 +18,7 @@ GraphModel GraphModel::makeTestGraph() {
     loc2.type = LocationType::Regular;
     loc2.coordX = 2; loc2.coordY = 0;
     loc2.label = QString::number(loc2.id);
-    loc2.color = "blue";
+    loc2.color = 1; // Blue
     model.locations.append(loc2);
     // Location 3: Finish
     LocationDef loc3;
@@ -26,7 +26,7 @@ GraphModel GraphModel::makeTestGraph() {
     loc3.type = LocationType::Finish;
     loc3.coordX = 4; loc3.coordY = 0;
     loc3.label = QString::number(loc3.id);
-    loc3.color = "red";
+    loc3.color = 12; // Deep Orange
     model.locations.append(loc3);
     // Set observedVirtualPoint to the first location's point
     if (!model.locations.isEmpty()) {

@@ -24,15 +24,15 @@ int main(int argc, char *argv[])
     Manager manager(game, state, idGen);
 
     // Start location with description
-    LocationDef& startLoc = manager.addLocation(LocationType::Start, "Start", "green", 0, 0);
+    LocationDef& startLoc = manager.addLocation(LocationType::Start, "Start", 11, 0, 0); // Green
     startLoc.descriptionPack.descriptions = {"Hello!"};
 
     // Regular location with two descriptions
-    LocationDef& regularLoc = manager.addLocation(LocationType::Regular, "Intermediate", "blue", 1, 0);
+    LocationDef& regularLoc = manager.addLocation(LocationType::Regular, "Intermediate", 1, 1, 0); // Blue
     regularLoc.descriptionPack.descriptions = {"Intermediate 1", "Intermediate 2"};
 
     // Finish location with description
-    LocationDef& finishLoc = manager.addLocation(LocationType::Finish, "Finish", "red", 2, 0);
+    LocationDef& finishLoc = manager.addLocation(LocationType::Finish, "Finish", 12, 2, 0); // Deep Orange
     finishLoc.descriptionPack.descriptions = {"Bye!"};
 
     // Edge 1: Start -> Regular
