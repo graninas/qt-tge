@@ -59,8 +59,25 @@ void drawGrid(QPainter *painter, const QRectF &rect, double step, const QPointF 
     }
 }
 
+void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, double radius, double size) {
+    // Compute direction
+    QLineF line(from, to);
+    if (line.length() == 0) return;
+    // Move arrow tip to just outside the target node's circle
+    line.setLength(line.length() - radius);
+    QPointF tip = line.p2();
+    double angle = std::atan2(-line.dy(), line.dx());
+    QPointF left = tip + QPointF(-size * std::cos(angle - M_PI / 6), size * std::sin(angle - M_PI / 6));
+    QPointF right = tip + QPointF(-size * std::cos(angle + M_PI / 6), size * std::sin(angle + M_PI / 6));
+    QPolygonF arrowHead;
+    arrowHead << tip << left << right;
+    painter->setBrush(Qt::darkGreen);
+    painter->drawPolygon(arrowHead);
+}
+
 void drawEdges(QPainter *painter, const GraphModel *model, double step) {
-    painter->setPen(QPen(Qt::darkGreen, 2));
+    QPen edgePen(Qt::darkGreen, 4); // Bolder edge
+    painter->setPen(edgePen);
     for (const auto &edge : model->edges) {
         const auto *from = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.fromLocation;});
         const auto *to = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.toLocation;});
@@ -68,6 +85,7 @@ void drawEdges(QPainter *painter, const GraphModel *model, double step) {
             QPointF p1(from->coordX * step, from->coordY * step);
             QPointF p2(to->coordX * step, to->coordY * step);
             painter->drawLine(p1, p2);
+            drawArrowHead(painter, p1, p2, 14.0, 14.0); // Arrow just outside target node
         }
     }
 }

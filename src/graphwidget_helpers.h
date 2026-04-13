@@ -18,6 +18,7 @@ void drawLocations(QPainter *painter, const GraphModel *model, double step, int 
 
 // Draw all edges
 void drawEdges(QPainter *painter, const GraphModel *model, double step);
+void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, double radius = 10.0, double size = 12.0);
 }
 
 #endif // GRAPHWIDGET_HELPERS_H
