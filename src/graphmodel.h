@@ -5,12 +5,13 @@
 #include <QVector>
 #include <QColor>
 #include <QString>
+#include <QPointF>
 
-// Simple model for the UI to hold a static graph
 class GraphModel {
 public:
     QVector<tge::domain::LocationDef> locations;
     QVector<tge::domain::EdgeDef> edges;
+    QPointF observedVirtualPoint = QPointF(0, 0); // Virtual point in graph coordinates
 
     // Helper to create a static test graph (3 nodes, 2 edges)
     static GraphModel makeTestGraph();

@@ -16,10 +16,21 @@ GraphWidget::GraphWidget(QWidget *parent)
     model = nullptr;
 }
 
+void GraphWidget::centerOnObservedVirtualPoint()
+{
+    if (model) {
+        double step = gridSettings.scale;
+        QPointF center(viewport()->width() / 2.0, viewport()->height() / 2.0);
+        QPointF virtualScene(model->observedVirtualPoint.x() * step, model->observedVirtualPoint.y() * step);
+        viewDelta = center - virtualScene;
+        viewport()->update();
+    }
+}
+
 void GraphWidget::setModel(GraphModel *m)
 {
     model = m;
-    viewport()->update();
+    centerOnObservedVirtualPoint();
 }
 
 void GraphWidget::mousePressEvent(QMouseEvent *event)
@@ -118,15 +129,40 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
     painter->translate(viewDelta);
     painter->scale(viewScale, viewScale);
     // Draw grid
-    painter->setPen(QPen(gridSettings.color, 1));
     double step = gridSettings.scale;
     QRectF r = painter->transform().inverted().mapRect(rect);
     double x0 = std::floor(r.left() / step) * step;
     double y0 = std::floor(r.top() / step) * step;
-    for (double x = x0; x < r.right(); x += step) {
+    int minX = static_cast<int>(std::floor(r.left() / step));
+    int maxX = static_cast<int>(std::ceil(r.right() / step));
+    int minY = static_cast<int>(std::floor(r.top() / step));
+    int maxY = static_cast<int>(std::ceil(r.bottom() / step));
+    // Draw vertical grid lines
+    for (int i = minX; i <= maxX; ++i) {
+        double x = i * step;
+        if (i == 0) {
+            painter->setPen(QPen(Qt::black, 2)); // Y axis
+        } else if (i % 10 == 0) {
+            painter->setPen(QPen(Qt::gray, 2)); // Major
+        } else if (i % 5 == 0) {
+            painter->setPen(QPen(Qt::gray, 1)); // Medium
+        } else {
+            painter->setPen(QPen(gridSettings.color, 1)); // Minor
+        }
         painter->drawLine(QLineF(x, r.top(), x, r.bottom()));
     }
-    for (double y = y0; y < r.bottom(); y += step) {
+    // Draw horizontal grid lines
+    for (int j = minY; j <= maxY; ++j) {
+        double y = j * step;
+        if (j == 0) {
+            painter->setPen(QPen(Qt::black, 2)); // X axis
+        } else if (j % 10 == 0) {
+            painter->setPen(QPen(Qt::gray, 2)); // Major
+        } else if (j % 5 == 0) {
+            painter->setPen(QPen(Qt::gray, 1)); // Medium
+        } else {
+            painter->setPen(QPen(gridSettings.color, 1)); // Minor
+        }
         painter->drawLine(QLineF(r.left(), y, r.right(), y));
     }
     // Draw model if set
@@ -166,5 +202,11 @@ void GraphWidget::paintEvent(QPaintEvent *event)
 {
     QPainter painter(viewport());
     drawBackground(&painter, viewport()->rect());
+}
+
+void GraphWidget::resizeEvent(QResizeEvent *event)
+{
+    QGraphicsView::resizeEvent(event);
+    centerOnObservedVirtualPoint();
 }
 

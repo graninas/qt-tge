@@ -28,6 +28,10 @@ GraphModel GraphModel::makeTestGraph() {
     loc3.label = QString::number(loc3.id);
     loc3.color = "red";
     model.locations.append(loc3);
+    // Set observedVirtualPoint to the first location's point
+    if (!model.locations.isEmpty()) {
+        model.observedVirtualPoint = QPointF(model.locations[0].coordX, model.locations[0].coordY);
+    }
     // Edge 1: 1 -> 2
     EdgeDef e1;
     e1.id = 1;

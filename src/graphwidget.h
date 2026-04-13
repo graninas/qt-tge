@@ -27,12 +27,14 @@ protected:
     void mouseMoveEvent(QMouseEvent *event) override;
     void mouseReleaseEvent(QMouseEvent *event) override;
     void paintEvent(QPaintEvent *event) override;
+    void resizeEvent(QResizeEvent *event) override;
 
 private:
+    void centerOnObservedVirtualPoint();
+
     struct GridSettings {
         double scale = 50.0; // Cell size in pixels
         QColor color = QColor(220, 220, 220); // Light gray
-        QPointF center = QPointF(0, 0); // Center of the view in grid coordinates
     };
 
     QPointF viewDelta;  // Accumulated scene shift
