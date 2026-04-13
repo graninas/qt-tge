@@ -44,5 +44,11 @@ GraphModel GraphModel::makeTestGraph() {
     e2.fromLocation = 2;
     e2.toLocation = 3;
     model.edges.append(e2);
+    // Edge 3: 2 -> 1 (returning edge)
+    EdgeDef e3;
+    e3.id = 3;
+    e3.fromLocation = 2;
+    e3.toLocation = 1;
+    model.edges.append(e3);
     return model;
 }

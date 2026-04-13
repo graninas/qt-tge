@@ -4,9 +4,9 @@ project(QtTGE LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# Find Qt5 Widgets
+# Find Qt5 Widgets, Core, and Gui
 set(CMAKE_PREFIX_PATH "/usr/lib/qt5")
-find_package(Qt5 REQUIRED COMPONENTS Widgets Core)
+find_package(Qt5 REQUIRED COMPONENTS Widgets Core Gui)
 
 # UI file
 set(UI_FILES src/ui/mainwindow.ui)
@@ -19,7 +19,7 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 
 add_executable(Qt-TGE ${SOURCES})
-target_link_libraries(Qt-TGE Qt5::Widgets Qt5::Core)
+target_link_libraries(Qt-TGE Qt5::Widgets Qt5::Core Qt5::Gui)
 
 # For IDEs
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Qt-TGE)

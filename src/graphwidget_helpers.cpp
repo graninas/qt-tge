@@ -3,6 +3,7 @@
 #include <QFont>
 #include <algorithm>
 #include "tge/domain.h"
+#include <QPainterPath>
 
 namespace graphwidget_helpers {
 const QColor LOCATION_COLOR_PALETTE[LOCATION_COLOR_COUNT] = {
@@ -75,17 +76,43 @@ void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, do
     painter->drawPolygon(arrowHead);
 }
 
+void drawEdgeStraight(QPainter *painter, const GraphModel *model, const tge::domain::EdgeDef &edge, double step) {
+    const auto from = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.fromLocation;});
+    const auto to = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.toLocation;});
+    if (from != model->locations.end() && to != model->locations.end()) {
+        QPointF p1(from->coordX * step, from->coordY * step);
+        QPointF p2(to->coordX * step, to->coordY * step);
+        painter->drawLine(p1, p2);
+        drawArrowHead(painter, p1, p2, 14.0, 14.0);
+    }
+}
+
+// Draw a curved edge between two points, with a simple fixed offset for debugging
+void drawEdgeCurvedSimple(QPainter *painter, const QPointF &p1, const QPointF &p2, double offset = 40.0) {
+    QPointF mid = (p1 + p2) / 2.0;
+    double dx = p2.x() - p1.x();
+    double dy = p2.y() - p1.y();
+    double length = std::sqrt(dx*dx + dy*dy);
+    if (length == 0) return;
+    double nx = -dy / length;
+    double ny = dx / length;
+    QPointF ctrl = mid + QPointF(nx * offset, ny * offset);
+    painter->setPen(QPen(Qt::darkGreen, 2));
+    painter->setBrush(Qt::NoBrush);
+    QPainterPath path(p1);
+    path.quadTo(ctrl, p2);
+    painter->drawPath(path);
+    drawArrowHead(painter, ctrl, p2, 14.0, 14.0);
+}
+
 void drawEdges(QPainter *painter, const GraphModel *model, double step) {
-    QPen edgePen(Qt::darkGreen, 4); // Bolder edge
-    painter->setPen(edgePen);
     for (const auto &edge : model->edges) {
-        const auto *from = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.fromLocation;});
-        const auto *to = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.toLocation;});
+        const auto from = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.fromLocation;});
+        const auto to = std::find_if(model->locations.begin(), model->locations.end(), [&](const auto &l){return l.id == edge.toLocation;});
         if (from != model->locations.end() && to != model->locations.end()) {
             QPointF p1(from->coordX * step, from->coordY * step);
             QPointF p2(to->coordX * step, to->coordY * step);
-            painter->drawLine(p1, p2);
-            drawArrowHead(painter, p1, p2, 14.0, 14.0); // Arrow just outside target node
+            drawEdgeCurvedSimple(painter, p1, p2);
         }
     }
 }
