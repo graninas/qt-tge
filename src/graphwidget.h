@@ -10,6 +10,7 @@
 #include <QPainter>
 #include <cmath>
 #include <QScrollBar>
+#include "graphmodel.h"
 
 
 class GraphWidget : public QGraphicsView
@@ -17,6 +18,7 @@ class GraphWidget : public QGraphicsView
     Q_OBJECT
 public:
     explicit GraphWidget(QWidget *parent = nullptr);
+    void setModel(GraphModel *model);
 
 protected:
     void wheelEvent(QWheelEvent *event) override;
@@ -33,7 +35,6 @@ private:
         QPointF center = QPointF(0, 0); // Center of the view in grid coordinates
     };
 
-    QPointF dot1, dot2; // Dot positions
     QPointF viewDelta;  // Accumulated scene shift
     double viewScale = 1.0; // Accumulated zoom
     bool rightButtonPressed = false;
@@ -42,6 +43,7 @@ private:
 
     int draggingDot = -1; // -1: none, 0: dot1, 1: dot2
     QPointF dragOffset;   // Offset from mouse to dot center
+    GraphModel *model = nullptr;
 };
 
 #endif // GRAPHWIDGET_H
