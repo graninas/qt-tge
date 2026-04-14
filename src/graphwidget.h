@@ -12,7 +12,21 @@
 #include <QScrollBar>
 #include <QTimer>
 #include "gui_model.h"
+#include "graphwidget_errors.h"
 
+
+class GraphWidget;
+namespace graphwidget_edges {
+    void startEdgeCreation(GraphWidget*);
+    void cancelEdgeCreation(GraphWidget*);
+    void finishEdgeCreation(GraphWidget*, int);
+}
+namespace graphwidget_locations {
+    void handleNewLocationMode(GraphWidget*, QMouseEvent*);
+    void handleLocationDrag(GraphWidget*, QMouseEvent*);
+    void handleLocationHover(GraphWidget*, QMouseEvent*);
+    void handleLocationEdit(GraphWidget*, int);
+}
 
 class UiModel;
 
@@ -65,21 +79,29 @@ private:
     int edgeSourceLocationId = -1;
     QPointF edgeTempTarget; // Scene position of mouse during edge creation
 
+    friend void graphwidget_edges::startEdgeCreation(GraphWidget*);
+    friend void graphwidget_edges::cancelEdgeCreation(GraphWidget*);
+    friend void graphwidget_edges::finishEdgeCreation(GraphWidget*, int);
+    friend void graphwidget_locations::handleNewLocationMode(GraphWidget*, QMouseEvent*);
+    friend void graphwidget_locations::handleLocationDrag(GraphWidget*, QMouseEvent*);
+    friend void graphwidget_locations::handleLocationHover(GraphWidget*, QMouseEvent*);
+    friend void graphwidget_locations::handleLocationEdit(GraphWidget*, int);
+
     void startEdgeCreation();
     void cancelEdgeCreation();
     void finishEdgeCreation(int destinationLocationId);
 
+public:
     // Error message state
+    void showErrorMessage(const QString& msg, const QPoint& pos);
+    void clearErrorMessage();
+    QStringList wrapErrorMessage(const QString& msg, int maxLineLen) const;
+    void drawErrorMessage(QPainter& painter) const;
+
+    // Make error handling members public for access by graphwidget_errors
     QString errorMessage;
     QPoint errorCursorPos;
     QTimer errorTimer;
-    void showErrorMessage(const QString& msg, const QPoint& pos);
-    void clearErrorMessage();
-
-    // Helper for error message word wrapping
-    QStringList wrapErrorMessage(const QString& msg, int maxLineLen = 48) const;
-    // Helper for drawing the error message
-    void drawErrorMessage(QPainter& painter) const;
 
 signals:
     void newLocationCreated();

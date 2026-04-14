@@ -1,5 +1,7 @@
 #include "graphwidget.h"
 #include "graphwidget_helpers.h"
+#include "graphwidget_edges.h"
+#include "graphwidget_locations.h"
 #include "tge/domain.h"
 #include "gui_model.h"
 #include "locationdialog.h"
@@ -15,6 +17,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <QKeyEvent>
+#include "graphwidget_errors.h"
 
 GraphWidget::GraphWidget(QWidget *parent)
     : QGraphicsView(parent)
@@ -74,55 +77,9 @@ void GraphWidget::updateCursor()
     }
 }
 
-void GraphWidget::startEdgeCreation() {
-    edgeCreationState = EdgeCreationState::SelectSource;
-    edgeSourceLocationId = -1;
-    edgeTempTarget = QPointF();
-    viewport()->update();
-}
-
-void GraphWidget::cancelEdgeCreation() {
-    edgeCreationState = EdgeCreationState::None;
-    edgeSourceLocationId = -1;
-    edgeTempTarget = QPointF();
-    viewport()->update();
-}
-
-void GraphWidget::finishEdgeCreation(int destinationLocationId) {
-    if (!model || edgeSourceLocationId == -1 || destinationLocationId == -1)
-        return;
-    try {
-        if (edgeSourceLocationId == destinationLocationId) {
-            // Use addLoopEdge for self-pointing edges
-            int serviceLocId = model->manager.addLoopEdge(edgeSourceLocationId, "", "");
-            // Optionally, open dialog for the new service location or edges if needed
-            // For now, just update the viewport
-            viewport()->update();
-        } else {
-            // Add edge using manager
-            auto* edge = model->manager.addEdge(edgeSourceLocationId, destinationLocationId, "", "");
-            if (edge) {
-                // Open edge editing dialog
-                auto& fromLoc = model->gameDef.locations[edgeSourceLocationId];
-                auto& toLoc = model->gameDef.locations[destinationLocationId];
-                EdgeDialog dlg(*edge, fromLoc, toLoc, this);
-                if (dlg.exec() == QDialog::Accepted) {
-                    edge->optionText = dlg.optionText();
-                    edge->transitionText = dlg.transitionText();
-                }
-            } else {
-                qWarning() << "Edge creation error:" << model->manager.lastError();
-                showErrorMessage(tr("Edge creation failed: ") + model->manager.lastError(), memoCursorPos);
-            }
-        }
-    } catch (const std::exception& ex) {
-        // Optionally show error to user (QMessageBox or similar)
-        qWarning() << "Edge creation error:" << ex.what();
-        showErrorMessage(tr("Edge creation failed: ") + ex.what(), memoCursorPos);
-    }
-    cancelEdgeCreation();
-    viewport()->update();
-}
+void GraphWidget::startEdgeCreation() { graphwidget_edges::startEdgeCreation(this); }
+void GraphWidget::cancelEdgeCreation() { graphwidget_edges::cancelEdgeCreation(this); }
+void GraphWidget::finishEdgeCreation(int destinationLocationId) { graphwidget_edges::finishEdgeCreation(this, destinationLocationId); }
 
 void GraphWidget::mousePressEvent(QMouseEvent *event)
 {
@@ -153,41 +110,14 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         return;
     }
     if (newLocationMode && event->button() == Qt::LeftButton && model) {
-        double step = gridSettings.scale;
-        QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), viewDelta, viewScale);
-        int gridX = std::round(mouseScene.x() / step);
-        int gridY = std::round(mouseScene.y() / step);
-        int newId = -1;
-        // Use manager if available (not a pointer)
-        if constexpr (std::is_member_object_pointer_v<decltype(&UiModel::manager)>) {
-            auto& loc = model->manager.addLocation(
-                QString(), // label
-                0,         // color
-                gridX,
-                gridY
-            );
-            newId = loc.id; // Assuming LocationDef has an id field
-        } else {
-            // fallback: add directly to model
-            newId = model->gameDef.locations.size() > 0 ? (model->gameDef.locations.lastKey() + 1) : 0;
-            tge::domain::LocationDef loc;
-            loc.coordX = gridX;
-            loc.coordY = gridY;
-            loc.type = tge::domain::LocationType::Regular;
-            model->gameDef.locations[newId] = loc;
-        }
-        if (newId != -1) {
-            graphwidget_helpers::editLocationDialog(model, newId, this, [this]() { viewport()->update(); });
-        }
-        // Do not reset mode or emit newLocationCreated; keep mode on for multiple adds
-        event->accept();
+        graphwidget_locations::handleNewLocationMode(this, event);
         return;
     }
     double step = gridSettings.scale;
     if (event->button() == Qt::MiddleButton && model) {
         int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), viewDelta, viewScale, step);
         if (id != -1) {
-            graphwidget_helpers::editLocationDialog(model, id, this, [this]() { viewport()->update(); });
+            graphwidget_locations::handleLocationEdit(this, id);
             event->accept();
             return;
         }
@@ -233,16 +163,7 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
     }
 
     if (draggingDot != -1 && model) {
-        QTransform t;
-        t.translate(viewDelta.x(), viewDelta.y());
-        t.scale(viewScale, viewScale);
-        QPointF mouseScene = t.inverted().map(event->pos());
-        double step = gridSettings.scale;
-        QPointF newPos = mouseScene - dragOffset;
-        model->gameDef.locations[draggingDot].coordX = newPos.x() / step;
-        model->gameDef.locations[draggingDot].coordY = newPos.y() / step;
-        viewport()->update();
-        event->accept();
+        graphwidget_locations::handleLocationDrag(this, event);
         return;
     }
     // Hover detection
@@ -368,7 +289,7 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton && model) {
         int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), viewDelta, viewScale, step);
         if (id != -1) {
-            graphwidget_helpers::editLocationDialog(model, id, this, [this]() { viewport()->update(); });
+            graphwidget_locations::handleLocationEdit(this, id);
             event->accept();
             return;
         }
@@ -419,64 +340,18 @@ void GraphWidget::keyReleaseEvent(QKeyEvent *event)
 }
 
 void GraphWidget::showErrorMessage(const QString& msg, const QPoint& pos) {
-    errorMessage = msg;
-    errorCursorPos = pos;
-    errorTimer.start(3500); // Show for 2.5 seconds
-    viewport()->update();
+    graphwidget_errors::showErrorMessage(this, msg, pos);
 }
 
 void GraphWidget::clearErrorMessage() {
-    errorMessage.clear();
-    errorTimer.stop();
-    viewport()->update();
+    graphwidget_errors::clearErrorMessage(this);
 }
 
 QStringList GraphWidget::wrapErrorMessage(const QString& msg, int maxLineLen) const {
-    QStringList lines;
-    QString currentLine;
-    const QStringList words = msg.split(' ');
-    for (const QString& word : words) {
-        if (currentLine.length() + word.length() + 1 > maxLineLen && !currentLine.isEmpty()) {
-            lines << currentLine;
-            currentLine.clear();
-        }
-        if (!currentLine.isEmpty()) currentLine += ' ';
-        currentLine += word;
-    }
-    if (!currentLine.isEmpty()) lines << currentLine;
-    return lines;
+    return graphwidget_errors::wrapErrorMessage(msg, maxLineLen);
 }
 
 void GraphWidget::drawErrorMessage(QPainter& painter) const {
-    if (errorMessage.isEmpty()) return;
-    painter.save();
-    painter.resetTransform();
-    QFont font = painter.font();
-    font.setPointSize(10);
-    painter.setFont(font);
-    QFontMetrics fm(font);
-    int pad = 8;
-    QStringList lines = wrapErrorMessage(errorMessage, 48);
-    int width = 0;
-    for (const QString& line : lines) width = std::max(width, fm.horizontalAdvance(line));
-    int height = lines.size() * fm.height();
-    QRect rect(errorCursorPos.x() + 25, errorCursorPos.y() + 20, width + 2*pad, height + 2*pad);
-    QColor bgColor(255, 200, 200);
-    QColor borderColor(180, 40, 40);
-    QColor shadowColor(0, 0, 0, 60);
-    QRect shadowRect = rect.translated(4, 4);
-    painter.setBrush(shadowColor);
-    painter.setPen(Qt::NoPen);
-    painter.drawRoundedRect(shadowRect, 10, 10);
-    painter.setBrush(bgColor);
-    painter.setPen(borderColor);
-    painter.drawRoundedRect(rect, 10, 10);
-    painter.setPen(Qt::black);
-    int y = rect.top() + pad + fm.ascent();
-    for (const QString& line : lines) {
-        painter.drawText(rect.left() + pad, y, line);
-        y += fm.height();
-    }
-    painter.restore();
+    graphwidget_errors::drawErrorMessage(this, painter);
 }
 
