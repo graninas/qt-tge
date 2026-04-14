@@ -4,6 +4,9 @@
 #include <QLineEdit>
 #include <QTextEdit>
 #include <QDialogButtonBox>
+#include <QTabWidget>
+#include <QPushButton>
+#include <QHBoxLayout>
 #include "tge/domain.h"
 
 LocationDialog::LocationDialog(const tge::domain::LocationDef& loc, const QString& typeStr, QWidget* parent)
@@ -22,14 +25,28 @@ LocationDialog::LocationDialog(const tge::domain::LocationDef& loc, const QStrin
     m_labelEdit = new QLineEdit(loc.label, this);
     layout->addWidget(m_labelEdit);
 
-    // Description
-    layout->addWidget(new QLabel(tr("Description:"), this));
-    m_descEdit = new QTextEdit(this);
-    QString desc;
-    if (!loc.descriptionPack.descriptions.isEmpty())
-        desc = loc.descriptionPack.descriptions[0];
-    m_descEdit->setPlainText(desc);
-    layout->addWidget(m_descEdit);
+    // Description tabs
+    layout->addWidget(new QLabel(tr("Descriptions:"), this));
+    QHBoxLayout* descBtnLayout = new QHBoxLayout;
+    m_addDescBtn = new QPushButton("+", this);
+    m_removeDescBtn = new QPushButton("-", this);
+    descBtnLayout->addWidget(m_addDescBtn);
+    descBtnLayout->addWidget(m_removeDescBtn);
+    layout->addLayout(descBtnLayout);
+    m_descTabs = new QTabWidget(this);
+    layout->addWidget(m_descTabs);
+    // Fill tabs from descriptionPack
+    int idx = 1;
+    if (!loc.descriptionPack.descriptions.isEmpty()) {
+        for (const QString& desc : loc.descriptionPack.descriptions) {
+            addDescriptionTab(desc);
+            ++idx;
+        }
+    } else {
+        addDescriptionTab();
+    }
+    connect(m_addDescBtn, &QPushButton::clicked, this, [this]() { addDescriptionTab(); });
+    connect(m_removeDescBtn, &QPushButton::clicked, this, [this]() { removeLastDescriptionTab(); });
 
     // Buttons
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
@@ -42,6 +59,28 @@ QString LocationDialog::label() const {
     return m_labelEdit->text();
 }
 
-QString LocationDialog::description() const {
-    return m_descEdit->toPlainText();
+QList<QString> LocationDialog::descriptions() const {
+    QList<QString> result;
+    for (int i = 0; i < m_descTabs->count(); ++i) {
+        QTextEdit* edit = qobject_cast<QTextEdit*>(m_descTabs->widget(i));
+        result.append(edit ? edit->toPlainText() : QString());
+    }
+    return result;
+}
+
+void LocationDialog::addDescriptionTab(const QString& text) {
+    QTextEdit* edit = new QTextEdit(this);
+    edit->setPlainText(text);
+    int idx = m_descTabs->count() + 1;
+    m_descTabs->addTab(edit, tr("Description %1").arg(idx));
+    m_descTabs->setCurrentWidget(edit);
+}
+
+void LocationDialog::removeLastDescriptionTab() {
+    int count = m_descTabs->count();
+    if (count > 1) {
+        QWidget* last = m_descTabs->widget(count - 1);
+        m_descTabs->removeTab(count - 1);
+        delete last;
+    }
 }

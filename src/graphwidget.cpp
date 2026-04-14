@@ -60,7 +60,16 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
                     default: typeStr = "Normal"; break;
                 }
                 LocationDialog dlg(loc, typeStr, this);
-                dlg.exec();
+                if (dlg.exec() == QDialog::Accepted) {
+                    // Save label
+                    model->gameDef.locations[id].label = dlg.label();
+                    // Save all descriptions
+                    auto descs = dlg.descriptions();
+                    auto& descPack = model->gameDef.locations[id].descriptionPack.descriptions;
+                    descPack.clear();
+                    for (const auto& d : descs) descPack.append(d);
+                    viewport()->update();
+                }
                 event->accept();
                 return;
             }
