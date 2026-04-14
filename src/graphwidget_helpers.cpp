@@ -269,4 +269,27 @@ void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, co
         y += fm.height();
     }
 }
+
+// Returns true if the given scene point is within radius of the location's position
+bool isPointOnLocation(const QPointF& scenePoint, const tge::domain::LocationDef& loc, double step, double radius) {
+    QPointF pos(loc.coordX * step, loc.coordY * step);
+    return QLineF(scenePoint, pos).length() <= radius;
+}
+
+QString firstDescription(const tge::domain::LocationDef& loc) {
+    if (!loc.descriptionPack.descriptions.isEmpty())
+        return loc.descriptionPack.descriptions[0];
+    return QString();
+}
+
+QString locationTypeToString(tge::domain::LocationType type, bool lower) {
+    QString s;
+    switch (type) {
+        case tge::domain::LocationType::Start: s = "Start"; break;
+        case tge::domain::LocationType::Finish: s = "Finish"; break;
+        case tge::domain::LocationType::Service: s = "Service"; break;
+        default: s = "Normal"; break;
+    }
+    return lower ? s.toLower() : s;
+}
 } // namespace graphwidget_helpers

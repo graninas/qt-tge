@@ -22,6 +22,10 @@ void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, co
 // Draw all edges
 void drawEdges(QPainter *painter, const UiModel *model, double step);
 void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, double radius = 10.0, double size = 12.0);
+
+bool isPointOnLocation(const QPointF& scenePoint, const tge::domain::LocationDef& loc, double step, double radius = 10.0);
+QString firstDescription(const tge::domain::LocationDef& loc);
+QString locationTypeToString(tge::domain::LocationType type, bool lower = false);
 }
 
 #endif // GRAPHWIDGET_HELPERS_H

@@ -40,6 +40,9 @@ void GraphWidget::setModel(UiModel *m, const AppearanceSettings& appearance)
 
 void GraphWidget::mousePressEvent(QMouseEvent *event)
 {
+    using graphwidget_helpers::isPointOnLocation;
+    using graphwidget_helpers::locationTypeToString;
+
     if (event->button() == Qt::MiddleButton && model) {
         QTransform t;
         t.translate(viewDelta.x(), viewDelta.y());
@@ -49,16 +52,9 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
             int id = it.key();
             const auto& loc = it.value();
-            QPointF pos(loc.coordX * step, loc.coordY * step);
-            if (QLineF(mouseScene, pos).length() <= 10) {
+            if (graphwidget_helpers::isPointOnLocation(mouseScene, loc, step)) {
                 // Show dialog
-                QString typeStr;
-                switch (loc.type) {
-                    case tge::domain::LocationType::Start: typeStr = "Start"; break;
-                    case tge::domain::LocationType::Finish: typeStr = "Finish"; break;
-                    case tge::domain::LocationType::Service: typeStr = "Service"; break;
-                    default: typeStr = "Normal"; break;
-                }
+                QString typeStr = locationTypeToString(loc.type);
                 LocationDialog dlg(loc, typeStr, this);
                 if (dlg.exec() == QDialog::Accepted) {
                     // Save label
@@ -91,10 +87,9 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
             int id = it.key();
             const auto& loc = it.value();
-            QPointF pos(loc.coordX * step, loc.coordY * step);
-            if (QLineF(mouseScene, pos).length() <= 10) {
+            if (graphwidget_helpers::isPointOnLocation(mouseScene, loc, step)) {
                 draggingDot = id;
-                dragOffset = mouseScene - pos;
+                dragOffset = mouseScene - QPointF(loc.coordX * step, loc.coordY * step);
                 setCursor(Qt::OpenHandCursor);
                 event->accept();
                 return;
@@ -144,8 +139,7 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
         for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
             int id = it.key();
             const auto& loc = it.value();
-            QPointF pos(loc.coordX * step, loc.coordY * step);
-            if (QLineF(mouseScene, pos).length() <= 10) {
+            if (graphwidget_helpers::isPointOnLocation(mouseScene, loc, step)) {
                 newHovered = id;
                 break;
             }
@@ -205,16 +199,8 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
             painter->save();
             painter->resetTransform(); // Draw memo in viewport coordinates
             const auto& loc = model->gameDef.locations[hoveredLocationId];
-            QString typeStr;
-            switch (loc.type) {
-                case tge::domain::LocationType::Start: typeStr = "start"; break;
-                case tge::domain::LocationType::Finish: typeStr = "finish"; break;
-                case tge::domain::LocationType::Service: typeStr = "service"; break;
-                default: typeStr = "regular"; break;
-            }
-            QString desc;
-            if (!loc.descriptionPack.descriptions.isEmpty())
-                desc = loc.descriptionPack.descriptions[0];
+            QString typeStr = graphwidget_helpers::locationTypeToString(loc.type, true);
+            QString desc = graphwidget_helpers::firstDescription(loc);
             graphwidget_helpers::drawLocationMemo(painter, loc, memoCursorPos, typeStr, desc);
             painter->restore();
         }
