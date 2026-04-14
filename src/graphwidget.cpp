@@ -5,6 +5,7 @@
 #include "locationdialog.h"
 #include "tge/editor/runtime/manager.h"
 #include "tge/domain.h"
+#include "edgedialog.h"
 #include <QToolButton> // Remove usage from code, keep for completeness>
 #include <QWheelEvent>
 #include <QPainter>
@@ -28,6 +29,7 @@ GraphWidget::GraphWidget(QWidget *parent)
     draggingDot = -1;
     model = nullptr;
     newLocationMode = false;
+    edgeCreationState = EdgeCreationState::None;
 }
 
 void GraphWidget::centerOnObservedVirtualPoint()
@@ -70,8 +72,65 @@ void GraphWidget::updateCursor()
     }
 }
 
+void GraphWidget::startEdgeCreation() {
+    edgeCreationState = EdgeCreationState::SelectSource;
+    edgeSourceLocationId = -1;
+    edgeTempTarget = QPointF();
+    viewport()->update();
+}
+
+void GraphWidget::cancelEdgeCreation() {
+    edgeCreationState = EdgeCreationState::None;
+    edgeSourceLocationId = -1;
+    edgeTempTarget = QPointF();
+    viewport()->update();
+}
+
+void GraphWidget::finishEdgeCreation(int destinationLocationId) {
+    if (!model || edgeSourceLocationId == -1 || destinationLocationId == -1 || edgeSourceLocationId == destinationLocationId)
+        return;
+    // Add edge using manager
+    auto& edge = model->manager.addEdge(edgeSourceLocationId, destinationLocationId, "", "");
+    // Open edge editing dialog
+    auto& fromLoc = model->gameDef.locations[edgeSourceLocationId];
+    auto& toLoc = model->gameDef.locations[destinationLocationId];
+    EdgeDialog dlg(edge, fromLoc, toLoc, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        edge.optionText = dlg.optionText();
+        edge.transitionText = dlg.transitionText();
+    }
+    cancelEdgeCreation();
+    viewport()->update();
+}
+
 void GraphWidget::mousePressEvent(QMouseEvent *event)
 {
+    if (edgeCreationState == EdgeCreationState::SelectSource && event->button() == Qt::LeftButton && model) {
+        double step = gridSettings.scale;
+        int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), viewDelta, viewScale, step);
+        if (id != -1) {
+            edgeSourceLocationId = id;
+            edgeCreationState = EdgeCreationState::SelectDestination;
+            edgeTempTarget = graphwidget_helpers::mouseToScene(event->pos(), viewDelta, viewScale);
+            viewport()->update();
+            event->accept();
+            return;
+        }
+    } else if (edgeCreationState == EdgeCreationState::SelectDestination && event->button() == Qt::LeftButton && model) {
+        double step = gridSettings.scale;
+        int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), viewDelta, viewScale, step);
+        if (id != -1 && id != edgeSourceLocationId) {
+            finishEdgeCreation(id);
+            event->accept();
+            return;
+        }
+    }
+    // Cancel edge creation on any other mouse button
+    if (edgeCreationState != EdgeCreationState::None && event->button() != Qt::LeftButton) {
+        cancelEdgeCreation();
+        event->accept();
+        return;
+    }
     if (newLocationMode && event->button() == Qt::LeftButton && model) {
         double step = gridSettings.scale;
         QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), viewDelta, viewScale);
@@ -187,6 +246,12 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
         hoveredLocationId = newHovered;
         viewport()->update();
     }
+    if (edgeCreationState == EdgeCreationState::SelectDestination) {
+        edgeTempTarget = graphwidget_helpers::mouseToScene(event->pos(), viewDelta, viewScale);
+        viewport()->update();
+        event->accept();
+        return;
+    }
     QGraphicsView::mouseMoveEvent(event);
 }
 
@@ -250,6 +315,23 @@ void GraphWidget::paintEvent(QPaintEvent *event)
 {
     QPainter painter(viewport());
     drawBackground(&painter, viewport()->rect());
+    // Draw temporary edge if in SelectDestination
+    if (edgeCreationState == EdgeCreationState::SelectDestination && model && edgeSourceLocationId != -1) {
+        double step = gridSettings.scale;
+        const auto& locations = model->gameDef.locations;
+        auto it = locations.find(edgeSourceLocationId);
+        if (it != locations.end()) {
+            QPointF from(it.value().coordX * step, it.value().coordY * step);
+            QPointF to = edgeTempTarget;
+            painter.save();
+            painter.translate(viewDelta);
+            painter.scale(viewScale, viewScale);
+            painter.setPen(QPen(Qt::darkGreen, 2, Qt::DashLine));
+            painter.drawLine(from, to);
+            graphwidget_helpers::drawArrowHead(&painter, from, to, 14.0, 14.0);
+            painter.restore();
+        }
+    }
 }
 
 void GraphWidget::resizeEvent(QResizeEvent *event)
@@ -274,6 +356,17 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
 
 void GraphWidget::keyPressEvent(QKeyEvent *event)
 {
+    if (event->key() == Qt::Key_Shift && edgeCreationState == EdgeCreationState::None) {
+        startEdgeCreation();
+        event->accept();
+        return;
+    }
+    // Cancel edge creation on any key except Shift during SelectDestination
+    if (edgeCreationState == EdgeCreationState::SelectDestination && event->key() != Qt::Key_Shift) {
+        cancelEdgeCreation();
+        event->accept();
+        return;
+    }
     if (event->key() == Qt::Key_Control) {
         setNewLocationMode(true);
     }
@@ -282,6 +375,21 @@ void GraphWidget::keyPressEvent(QKeyEvent *event)
 
 void GraphWidget::keyReleaseEvent(QKeyEvent *event)
 {
+    if (event->key() == Qt::Key_Shift && edgeCreationState != EdgeCreationState::None) {
+        // If in SelectDestination, try to finish edge creation if cursor is over a location
+        if (edgeCreationState == EdgeCreationState::SelectDestination && model) {
+            double step = gridSettings.scale;
+            int id = graphwidget_helpers::findLocationAtMouse(model, memoCursorPos, viewDelta, viewScale, step);
+            if (id != -1 && id != edgeSourceLocationId) {
+                finishEdgeCreation(id);
+                event->accept();
+                return;
+            }
+        }
+        cancelEdgeCreation();
+        event->accept();
+        return;
+    }
     if (event->key() == Qt::Key_Control) {
         setNewLocationMode(false);
     }

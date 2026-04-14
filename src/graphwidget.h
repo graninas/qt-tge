@@ -58,6 +58,16 @@ private:
     QPoint memoCursorPos; // Screen position for memo
     bool newLocationMode = false;
 
+    // --- New edge creation mode ---
+    enum class EdgeCreationState { None, SelectSource, SelectDestination };
+    EdgeCreationState edgeCreationState = EdgeCreationState::None;
+    int edgeSourceLocationId = -1;
+    QPointF edgeTempTarget; // Scene position of mouse during edge creation
+
+    void startEdgeCreation();
+    void cancelEdgeCreation();
+    void finishEdgeCreation(int destinationLocationId);
+
 signals:
     void newLocationCreated();
 };
