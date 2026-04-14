@@ -18,11 +18,50 @@ public:
     void clearError() { m_lastError.clear(); }
     bool hasError() const { return !m_lastError.isEmpty(); }
 
-    // Add a new location to the game
-    domain::LocationDef& addLocation(domain::LocationType type, const QString& label, int color, int x, int y) {
+    // Add a new regular location to the game
+    domain::LocationDef& addLocation(const QString& label, int color, int x, int y) {
         domain::LocationDef loc;
         loc.id = m_idGen.generateLocationId();
-        loc.type = type;
+        loc.type = domain::LocationType::Regular;
+        loc.label = label;
+        loc.color = color;
+        loc.coordX = x;
+        loc.coordY = y;
+        m_game.locations[loc.id] = loc;
+        return m_game.locations[loc.id];
+    }
+
+    // Add a new start location (no custom color)
+    domain::LocationDef& addStartLocation(const QString& label, int x, int y) {
+        domain::LocationDef loc;
+        loc.id = m_idGen.generateLocationId();
+        loc.type = domain::LocationType::Start;
+        loc.label = label;
+        loc.color = tge::domain::LOCATION_COLOR_NONE;
+        loc.coordX = x;
+        loc.coordY = y;
+        m_game.locations[loc.id] = loc;
+        return m_game.locations[loc.id];
+    }
+
+    // Add a new finish location (no custom color)
+    domain::LocationDef& addFinishLocation(const QString& label, int x, int y) {
+        domain::LocationDef loc;
+        loc.id = m_idGen.generateLocationId();
+        loc.type = domain::LocationType::Finish;
+        loc.label = label;
+        loc.color = tge::domain::LOCATION_COLOR_NONE;
+        loc.coordX = x;
+        loc.coordY = y;
+        m_game.locations[loc.id] = loc;
+        return m_game.locations[loc.id];
+    }
+
+    // Add a new service location (may have custom color)
+    domain::LocationDef& addServiceLocation(const QString& label, int color, int x, int y) {
+        domain::LocationDef loc;
+        loc.id = m_idGen.generateLocationId();
+        loc.type = domain::LocationType::Service;
         loc.label = label;
         loc.color = color;
         loc.coordX = x;
@@ -116,7 +155,7 @@ public:
         int newX = src.coordX + dx;
         int newY = src.coordY + dy;
         // Create service location
-        auto& serviceLoc = addLocation(domain::LocationType::Service, "", tge::domain::LOCATION_COLOR_NONE, newX, newY);
+        auto& serviceLoc = addServiceLocation("", tge::domain::LOCATION_COLOR_NONE, newX, newY);
         // Add edge source -> service
         if (!addEdge(sourceId, serviceLoc.id, optionText, transitionText)) return -1;
         // Add edge service -> source

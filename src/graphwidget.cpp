@@ -157,7 +157,6 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         // Use manager if available (not a pointer)
         if constexpr (std::is_member_object_pointer_v<decltype(&UiModel::manager)>) {
             auto& loc = model->manager.addLocation(
-                tge::domain::LocationType::Regular,
                 QString(), // label
                 0,         // color
                 gridX,

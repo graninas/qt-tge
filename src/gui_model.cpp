@@ -8,13 +8,13 @@ UiModel UiModel::makeTestGraph() {
     UiModel model;
     Manager& mgr = model.manager;
     // Location 1: Start
-    auto& loc1 = mgr.addLocation(LocationType::Start, "Start", 11, 0, 0);
+    auto& loc1 = mgr.addStartLocation("Start", 0, 0);
     // Location 2: Intermediate 1 (Regular)
-    auto& loc2 = mgr.addLocation(LocationType::Regular, "Intermediate1", 1, 2, 0);
+    auto& loc2 = mgr.addLocation("Intermediate1", 1, 2, 0);
     // Location 3: Intermediate 2 (Regular)
-    auto& loc3 = mgr.addLocation(LocationType::Regular, "Intermediate2", 2, 3, 0);
+    auto& loc3 = mgr.addLocation("Intermediate2", 2, 3, 0);
     // Location 4: Finish
-    auto& loc4 = mgr.addLocation(LocationType::Finish, "Finish", 12, 4, 0);
+    auto& loc4 = mgr.addFinishLocation("Finish", 4, 0);
     model.observedVirtualPoint = QPointF(loc1.coordX, loc1.coordY);
     // Edge: start -> inter1
     mgr.addEdge(loc1.id, loc2.id, "", "");

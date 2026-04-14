@@ -18,9 +18,9 @@ int main(int argc, char *argv[])
     Manager manager(game, state, idGen);
 
     // Add start location
-    auto& startLoc = manager.addLocation(LocationType::Start, "Start", 11, 0, 0); // Green
+    auto& startLoc = manager.addStartLocation("Start", 0, 0); // Green
     // Add finish location
-    auto& finishLoc = manager.addLocation(LocationType::Finish, "Finish", 12, 1, 0); // Deep Orange
+    auto& finishLoc = manager.addFinishLocation("Finish", 1, 0); // Deep Orange
     // Add edge from start to finish
     auto* edge = manager.addEdge(startLoc.id, finishLoc.id, "Go to finish", "You move to the finish.");
     if (!edge) {

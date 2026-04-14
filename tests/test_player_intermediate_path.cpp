@@ -44,13 +44,13 @@ int main(int argc, char *argv[])
     Manager manager(game, state, idGen);
 
     // Add locations
-    LocationDef& startLoc = manager.addLocation(LocationType::Start, "Start", 11, 0, 0);
+    LocationDef& startLoc = manager.addStartLocation("Start", 0, 0);
     startLoc.descriptionPack.descriptions = {"Start!"};
-    LocationDef& interLoc1 = manager.addLocation(LocationType::Regular, "Intermediate1", 13, 1, 0);
+    LocationDef& interLoc1 = manager.addLocation("Intermediate1", 13, 1, 0);
     interLoc1.descriptionPack.descriptions = {"Intermediate1!"};
-    LocationDef& interLoc2 = manager.addLocation(LocationType::Regular, "Intermediate2", 14, 2, 0);
+    LocationDef& interLoc2 = manager.addLocation("Intermediate2", 14, 2, 0);
     interLoc2.descriptionPack.descriptions = {"Intermediate2!"};
-    LocationDef& finishLoc = manager.addLocation(LocationType::Finish, "Finish", 12, 3, 0);
+    LocationDef& finishLoc = manager.addFinishLocation("Finish", 3, 0);
     finishLoc.descriptionPack.descriptions = {"Finish!"};
 
     // Edges: start -> inter1, inter1 <-> inter2 (cycle), inter2 -> finish
