@@ -13,6 +13,7 @@
 #include <QToolTip>
 #include <QApplication>
 #include <QDebug>
+#include <QKeyEvent>
 
 GraphWidget::GraphWidget(QWidget *parent)
     : QGraphicsView(parent)
@@ -20,6 +21,7 @@ GraphWidget::GraphWidget(QWidget *parent)
     setDragMode(QGraphicsView::NoDrag);
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     setInteractive(false);
+    setFocusPolicy(Qt::StrongFocus); // Accept key events
     viewDelta = QPointF(0, 0);
     viewScale = 1.0;
     rightButtonPressed = false;
@@ -268,5 +270,21 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
         }
     }
     QGraphicsView::mouseDoubleClickEvent(event);
+}
+
+void GraphWidget::keyPressEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Control) {
+        setNewLocationMode(true);
+    }
+    QGraphicsView::keyPressEvent(event);
+}
+
+void GraphWidget::keyReleaseEvent(QKeyEvent *event)
+{
+    if (event->key() == Qt::Key_Control) {
+        setNewLocationMode(false);
+    }
+    QGraphicsView::keyReleaseEvent(event);
 }
 
