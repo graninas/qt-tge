@@ -5,6 +5,8 @@
 #include <QMap>
 #include "tge/domain.h"
 #include "tge/editor/runtime/manager.h"
+#include <QButtonGroup>
+#include <QVBoxLayout>
 
 namespace tge {
 namespace domain {
@@ -32,6 +34,7 @@ public:
 private slots:
     void onEdgeDeleteRequested(int edgeId);
     void onEdgeItemClicked(QListWidgetItem* item);
+    void onColorButtonClicked(int id);
 private:
     QLineEdit* m_labelEdit;
     QTabWidget* m_descTabs;
@@ -40,7 +43,11 @@ private:
     QListWidget* m_edgeListWidget;
     tge::domain::LocationDef* m_location;
     tge::editor::runtime::Manager* m_manager;
+    QButtonGroup* m_colorButtonGroup;
+    QVector<QPushButton*> m_colorButtons;
     void addDescriptionTab(const QString& text = QString());
     void removeLastDescriptionTab();
     void populateEdgeList();
+    void setupColorPaletteUI(QVBoxLayout* layout);
+    void updateColorSelection();
 };

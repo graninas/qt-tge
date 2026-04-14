@@ -2,6 +2,7 @@
 #include "edgedialog.h"
 #include "edgelistitemwidget.h"
 #include "tge/editor/runtime/manager.h"
+#include "graphwidget_helpers.h"
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -12,6 +13,8 @@
 #include <QHBoxLayout>
 #include <QListWidget>
 #include <QMessageBox>
+#include <QGridLayout>
+#include <QButtonGroup>
 
 using tge::editor::runtime::Manager;
 
@@ -20,6 +23,10 @@ LocationDialog::LocationDialog(tge::domain::LocationDef* loc, Manager* manager, 
 {
     setWindowTitle(tr("Location Info"));
     QVBoxLayout* layout = new QVBoxLayout(this);
+    setMinimumWidth(600); // Make dialog twice as wide (adjust as needed)
+
+    // Color palette UI
+    setupColorPaletteUI(layout);
 
     // ID and coords (read-only)
     QString idType = QString("%1 (%2): (%3,%4)").arg(loc->id).arg(static_cast<int>(loc->type)).arg(loc->coordX).arg(loc->coordY);
@@ -136,5 +143,57 @@ void LocationDialog::onEdgeItemClicked(QListWidgetItem* item) {
         edge.optionText = dlg.optionText();
         edge.transitionText = dlg.transitionText();
         populateEdgeList();
+    }
+}
+
+void LocationDialog::setupColorPaletteUI(QVBoxLayout* layout) {
+    QLabel* colorLabel = new QLabel(tr("Color:"), this);
+    layout->addWidget(colorLabel);
+    QGridLayout* grid = new QGridLayout();
+    m_colorButtonGroup = new QButtonGroup(this);
+    m_colorButtonGroup->setExclusive(true);
+    m_colorButtons.clear();
+    // 15 palette colors + 1 no color
+    for (int i = 0; i < tge::domain::LOCATION_COLOR_COUNT + 1; ++i) {
+        QPushButton* btn = new QPushButton(this);
+        btn->setFixedSize(32, 32);
+        if (i < tge::domain::LOCATION_COLOR_COUNT) {
+            btn->setStyleSheet(QString("background-color: %1;").arg(graphwidget_helpers::LOCATION_COLOR_PALETTE[i].name()));
+            btn->setToolTip(tr("Color %1").arg(i+1));
+        } else {
+            btn->setStyleSheet("background: none; border: 1px dashed #aaa;");
+            btn->setText("X");
+            btn->setToolTip(tr("No color"));
+        }
+        m_colorButtonGroup->addButton(btn, i);
+        m_colorButtons.append(btn);
+        grid->addWidget(btn, i / 8, i % 8);
+    }
+    layout->addLayout(grid);
+    connect(m_colorButtonGroup, QOverload<int>::of(&QButtonGroup::buttonClicked), this, &LocationDialog::onColorButtonClicked);
+    updateColorSelection();
+}
+
+void LocationDialog::onColorButtonClicked(int id) {
+    if (id < tge::domain::LOCATION_COLOR_COUNT) {
+        m_location->color = id;
+    } else {
+        m_location->color = tge::domain::LOCATION_COLOR_NONE;
+    }
+    updateColorSelection();
+}
+
+void LocationDialog::updateColorSelection() {
+    int sel = m_location->color;
+    for (int i = 0; i < m_colorButtons.size(); ++i) {
+        if ((sel == -1 && i == tge::domain::LOCATION_COLOR_COUNT) || (sel == i)) {
+            m_colorButtons[i]->setStyleSheet(m_colorButtons[i]->styleSheet() + "; border: 3px solid #333;");
+        } else {
+            // Reset border
+            if (i < tge::domain::LOCATION_COLOR_COUNT)
+                m_colorButtons[i]->setStyleSheet(QString("background-color: %1; border: 1px solid #aaa;").arg(graphwidget_helpers::LOCATION_COLOR_PALETTE[i].name()));
+            else
+                m_colorButtons[i]->setStyleSheet("background: none; border: 1px dashed #aaa;");
+        }
     }
 }
