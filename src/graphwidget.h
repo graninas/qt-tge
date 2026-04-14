@@ -12,6 +12,7 @@
 #include <QScrollBar>
 #include <QTimer>
 #include "gui_model.h"
+#include "graphwidget_errors.h"
 
 
 class GraphWidget;
@@ -90,17 +91,17 @@ private:
     void cancelEdgeCreation();
     void finishEdgeCreation(int destinationLocationId);
 
+public:
     // Error message state
+    void showErrorMessage(const QString& msg, const QPoint& pos);
+    void clearErrorMessage();
+    QStringList wrapErrorMessage(const QString& msg, int maxLineLen) const;
+    void drawErrorMessage(QPainter& painter) const;
+
+    // Make error handling members public for access by graphwidget_errors
     QString errorMessage;
     QPoint errorCursorPos;
     QTimer errorTimer;
-    void showErrorMessage(const QString& msg, const QPoint& pos);
-    void clearErrorMessage();
-
-    // Helper for error message word wrapping
-    QStringList wrapErrorMessage(const QString& msg, int maxLineLen = 48) const;
-    // Helper for drawing the error message
-    void drawErrorMessage(QPainter& painter) const;
 
 signals:
     void newLocationCreated();
