@@ -1,4 +1,16 @@
 TODOs:
 
+UI
+
 - Improve dialog appearance (size, layout, UX)
 - Disable color selection for start and finish locations in the dialog
+- Hovering effect for edges and a memo
+- Edit an edge by left-clicking
+- Copy and paste for locations
+- Copy and paste for edges
+- Shadow copy of location values
+- Shadow copy of edge values
+
+Domain
+
+- Edge priority: the order of edges as they appear as actions
