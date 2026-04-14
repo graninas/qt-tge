@@ -353,50 +353,7 @@ void GraphWidget::paintEvent(QPaintEvent *event)
         }
     }
     // Draw error message if present
-    if (!errorMessage.isEmpty()) {
-        painter.save();
-        painter.resetTransform();
-        QFont font = painter.font();
-        font.setPointSize(10);
-        painter.setFont(font);
-        QFontMetrics fm(font);
-        int pad = 8;
-        // Split error message into lines of max 48 chars (word wrap)
-        QStringList lines;
-        QString currentLine;
-        const int maxLineLen = 48;
-        const QStringList words = errorMessage.split(' ');
-        for (const QString& word : words) {
-            if (currentLine.length() + word.length() + 1 > maxLineLen && !currentLine.isEmpty()) {
-                lines << currentLine;
-                currentLine.clear();
-            }
-            if (!currentLine.isEmpty()) currentLine += ' ';
-            currentLine += word;
-        }
-        if (!currentLine.isEmpty()) lines << currentLine;
-        int width = 0;
-        for (const QString& line : lines) width = std::max(width, fm.horizontalAdvance(line));
-        int height = lines.size() * fm.height();
-        QRect rect(errorCursorPos.x() + 25, errorCursorPos.y() + 20, width + 2*pad, height + 2*pad);
-        QColor bgColor(255, 200, 200);
-        QColor borderColor(180, 40, 40);
-        QColor shadowColor(0, 0, 0, 60);
-        QRect shadowRect = rect.translated(4, 4);
-        painter.setBrush(shadowColor);
-        painter.setPen(Qt::NoPen);
-        painter.drawRoundedRect(shadowRect, 10, 10);
-        painter.setBrush(bgColor);
-        painter.setPen(borderColor);
-        painter.drawRoundedRect(rect, 10, 10);
-        painter.setPen(Qt::black);
-        int y = rect.top() + pad + fm.ascent();
-        for (const QString& line : lines) {
-            painter.drawText(rect.left() + pad, y, line);
-            y += fm.height();
-        }
-        painter.restore();
-    }
+    drawErrorMessage(painter);
 }
 
 void GraphWidget::resizeEvent(QResizeEvent *event)
@@ -472,5 +429,54 @@ void GraphWidget::clearErrorMessage() {
     errorMessage.clear();
     errorTimer.stop();
     viewport()->update();
+}
+
+QStringList GraphWidget::wrapErrorMessage(const QString& msg, int maxLineLen) const {
+    QStringList lines;
+    QString currentLine;
+    const QStringList words = msg.split(' ');
+    for (const QString& word : words) {
+        if (currentLine.length() + word.length() + 1 > maxLineLen && !currentLine.isEmpty()) {
+            lines << currentLine;
+            currentLine.clear();
+        }
+        if (!currentLine.isEmpty()) currentLine += ' ';
+        currentLine += word;
+    }
+    if (!currentLine.isEmpty()) lines << currentLine;
+    return lines;
+}
+
+void GraphWidget::drawErrorMessage(QPainter& painter) const {
+    if (errorMessage.isEmpty()) return;
+    painter.save();
+    painter.resetTransform();
+    QFont font = painter.font();
+    font.setPointSize(10);
+    painter.setFont(font);
+    QFontMetrics fm(font);
+    int pad = 8;
+    QStringList lines = wrapErrorMessage(errorMessage, 48);
+    int width = 0;
+    for (const QString& line : lines) width = std::max(width, fm.horizontalAdvance(line));
+    int height = lines.size() * fm.height();
+    QRect rect(errorCursorPos.x() + 25, errorCursorPos.y() + 20, width + 2*pad, height + 2*pad);
+    QColor bgColor(255, 200, 200);
+    QColor borderColor(180, 40, 40);
+    QColor shadowColor(0, 0, 0, 60);
+    QRect shadowRect = rect.translated(4, 4);
+    painter.setBrush(shadowColor);
+    painter.setPen(Qt::NoPen);
+    painter.drawRoundedRect(shadowRect, 10, 10);
+    painter.setBrush(bgColor);
+    painter.setPen(borderColor);
+    painter.drawRoundedRect(rect, 10, 10);
+    painter.setPen(Qt::black);
+    int y = rect.top() + pad + fm.ascent();
+    for (const QString& line : lines) {
+        painter.drawText(rect.left() + pad, y, line);
+        y += fm.height();
+    }
+    painter.restore();
 }
 

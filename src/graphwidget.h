@@ -76,6 +76,11 @@ private:
     void showErrorMessage(const QString& msg, const QPoint& pos);
     void clearErrorMessage();
 
+    // Helper for error message word wrapping
+    QStringList wrapErrorMessage(const QString& msg, int maxLineLen = 48) const;
+    // Helper for drawing the error message
+    void drawErrorMessage(QPainter& painter) const;
+
 signals:
     void newLocationCreated();
 };
