@@ -22,32 +22,37 @@ LocationDialog::LocationDialog(tge::domain::LocationDef* loc, Manager* manager, 
     : QDialog(parent), m_location(loc), m_manager(manager)
 {
     setWindowTitle(tr("Location Info"));
-    QVBoxLayout* layout = new QVBoxLayout(this);
     setMinimumWidth(600); // Make dialog twice as wide (adjust as needed)
 
+    QHBoxLayout* mainLayout = new QHBoxLayout(this);
+    QVBoxLayout* leftLayout = new QVBoxLayout();
+    QVBoxLayout* rightLayout = new QVBoxLayout();
+    mainLayout->addLayout(leftLayout, 3); // main fields wider
+    mainLayout->addLayout(rightLayout, 2); // edges area
+
     // Color palette UI
-    setupColorPaletteUI(layout);
+    setupColorPaletteUI(leftLayout);
 
     // ID and coords (read-only)
     QString idType = QString("%1 (%2): (%3,%4)").arg(loc->id).arg(static_cast<int>(loc->type)).arg(loc->coordX).arg(loc->coordY);
     QLabel* idLabel = new QLabel(idType, this);
-    layout->addWidget(idLabel);
+    leftLayout->addWidget(idLabel);
 
     // Label
-    layout->addWidget(new QLabel(tr("Label:"), this));
+    leftLayout->addWidget(new QLabel(tr("Label:"), this));
     m_labelEdit = new QLineEdit(loc->label, this);
-    layout->addWidget(m_labelEdit);
+    leftLayout->addWidget(m_labelEdit);
 
     // Description tabs
-    layout->addWidget(new QLabel(tr("Descriptions:"), this));
+    leftLayout->addWidget(new QLabel(tr("Descriptions:"), this));
     QHBoxLayout* descBtnLayout = new QHBoxLayout;
     m_addDescBtn = new QPushButton("+", this);
     m_removeDescBtn = new QPushButton("-", this);
     descBtnLayout->addWidget(m_addDescBtn);
     descBtnLayout->addWidget(m_removeDescBtn);
-    layout->addLayout(descBtnLayout);
+    leftLayout->addLayout(descBtnLayout);
     m_descTabs = new QTabWidget(this);
-    layout->addWidget(m_descTabs);
+    leftLayout->addWidget(m_descTabs);
     int idx = 1;
     if (!loc->descriptionPack.descriptions.isEmpty()) {
         for (const QString& desc : loc->descriptionPack.descriptions) {
@@ -61,17 +66,17 @@ LocationDialog::LocationDialog(tge::domain::LocationDef* loc, Manager* manager, 
     connect(m_removeDescBtn, &QPushButton::clicked, this, [this]() { removeLastDescriptionTab(); });
 
     // --- Edges area ---
-    layout->addWidget(new QLabel(tr("Edges (incoming/outgoing):"), this));
+    rightLayout->addWidget(new QLabel(tr("Edges (incoming/outgoing):"), this));
     m_edgeListWidget = new QListWidget(this);
-    layout->addWidget(m_edgeListWidget);
+    rightLayout->addWidget(m_edgeListWidget);
     populateEdgeList();
     connect(m_edgeListWidget, &QListWidget::itemClicked, this, &LocationDialog::onEdgeItemClicked);
 
-    // Buttons
+    // Buttons (span both columns)
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    layout->addWidget(buttons);
+    mainLayout->addWidget(buttons, 0, Qt::AlignBottom);
 }
 
 QString LocationDialog::label() const {
