@@ -10,6 +10,7 @@
 #include <QPainter>
 #include <cmath>
 #include <QScrollBar>
+#include <QTimer>
 #include "gui_model.h"
 
 
@@ -67,6 +68,13 @@ private:
     void startEdgeCreation();
     void cancelEdgeCreation();
     void finishEdgeCreation(int destinationLocationId);
+
+    // Error message state
+    QString errorMessage;
+    QPoint errorCursorPos;
+    QTimer errorTimer;
+    void showErrorMessage(const QString& msg, const QPoint& pos);
+    void clearErrorMessage();
 
 signals:
     void newLocationCreated();
