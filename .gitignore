@@ -38,3 +38,12 @@ qrc_*.cpp
 *.swp
 *~
 .DS_Store
+
+# Qt autogen directory
+Qt-TGE_autogen/
+
+# Object files
+*.d
+
+# mocs_compilation.cpp file
+mocs_compilation.cpp
