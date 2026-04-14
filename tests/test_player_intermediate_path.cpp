@@ -46,20 +46,22 @@ int main(int argc, char *argv[])
     // Add locations
     LocationDef& startLoc = manager.addLocation(LocationType::Start, "Start", 11, 0, 0);
     startLoc.descriptionPack.descriptions = {"Start!"};
-    LocationDef& interLoc = manager.addLocation(LocationType::Regular, "Intermediate", 13, 1, 0);
-    interLoc.descriptionPack.descriptions = {"Intermediate!"};
-    LocationDef& finishLoc = manager.addLocation(LocationType::Finish, "Finish", 12, 2, 0);
+    LocationDef& interLoc1 = manager.addLocation(LocationType::Regular, "Intermediate1", 13, 1, 0);
+    interLoc1.descriptionPack.descriptions = {"Intermediate1!"};
+    LocationDef& interLoc2 = manager.addLocation(LocationType::Regular, "Intermediate2", 14, 2, 0);
+    interLoc2.descriptionPack.descriptions = {"Intermediate2!"};
+    LocationDef& finishLoc = manager.addLocation(LocationType::Finish, "Finish", 12, 3, 0);
     finishLoc.descriptionPack.descriptions = {"Finish!"};
 
-    // Add edges: 2 from start to intermediate
-    auto& edge1 = manager.addEdge(startLoc.id, interLoc.id, "Go to inter 1", "Path 1");
-    auto& edge2 = manager.addEdge(startLoc.id, interLoc.id, "Go to inter 2", "Path 2");
-    // 3 from intermediate to start
-    auto& edge3 = manager.addEdge(interLoc.id, startLoc.id, "Back to start 1", "Return 1");
-    auto& edge4 = manager.addEdge(interLoc.id, startLoc.id, "Back to start 2", "Return 2");
-    auto& edge5 = manager.addEdge(interLoc.id, startLoc.id, "Back to start 3", "Return 3");
-    // 1 from intermediate to finish
-    auto& edge6 = manager.addEdge(interLoc.id, finishLoc.id, "To finish", "Final path");
+    // Edges: start -> inter1, inter1 <-> inter2 (cycle), inter2 -> finish
+    auto* edge1 = manager.addEdge(startLoc.id, interLoc1.id, "Go to inter1", "Path 1");
+    auto* edge2 = manager.addEdge(interLoc1.id, interLoc2.id, "To inter2", "Path 2");
+    auto* edge3 = manager.addEdge(interLoc2.id, interLoc1.id, "Back to inter1", "Return 1");
+    auto* edge4 = manager.addEdge(interLoc2.id, finishLoc.id, "To finish", "Final path");
+    if (!edge1 || !edge2 || !edge3 || !edge4) {
+        std::cerr << "Test failed: Edge creation error: " << manager.lastError().toStdString() << std::endl;
+        return 1;
+    }
 
     // Initialize game state
     GameInitializer initializer(game);
@@ -87,47 +89,39 @@ int main(int argc, char *argv[])
         std::cerr << "Test failed: Could not get start location." << std::endl;
         return 1;
     }
-    // 1. Collect edge IDs from start to intermediate
-    std::vector<int> startToInter = collectEdgeIds(step->options, startLoc.id, interLoc.id);
-    if (startToInter.size() != 2) {
-        std::cerr << "Test failed: Expected 2 edges from start to intermediate, got " << startToInter.size() << std::endl;
+    // 1. Collect edge IDs from start to inter1
+    std::vector<int> startToInter1 = collectEdgeIds(step->options, startLoc.id, interLoc1.id);
+    if (startToInter1.size() != 1) {
+        std::cerr << "Test failed: Expected 1 edge from start to inter1, got " << startToInter1.size() << std::endl;
         return 1;
     }
-    // 2. Take edge1: Start -> Intermediate
+    // 2. Take edge: Start -> Inter1
     tge::player::runtime::CurrentLocation inter1;
-    if (!moveAndCheckCurrent(engine, *step, startToInter[0], "Test failed: Could not take edge1 or not at intermediate after edge1.", inter1)) return 1;
-    // 3. Collect edge IDs from intermediate to start
-    std::vector<int> interToStartIds = collectEdgeIds(inter1.options, interLoc.id, startLoc.id);
-    if (interToStartIds.size() != 3) {
-        std::cerr << "Test failed: Expected 3 edges from intermediate to start, got " << interToStartIds.size() << std::endl;
+    if (!moveAndCheckCurrent(engine, *step, startToInter1[0], "Test failed: Could not take edge1 or not at inter1 after edge1.", inter1)) return 1;
+    // 3. Collect edge IDs from inter1 to inter2
+    std::vector<int> inter1ToInter2 = collectEdgeIds(inter1.options, interLoc1.id, interLoc2.id);
+    if (inter1ToInter2.size() != 1) {
+        std::cerr << "Test failed: Expected 1 edge from inter1 to inter2, got " << inter1ToInter2.size() << std::endl;
         return 1;
     }
-    // 4. Take edge3: Intermediate -> Start
-    tge::player::runtime::CurrentLocation start2;
-    if (!moveAndCheckCurrent(engine, inter1, interToStartIds[0], "Test failed: Could not take edge3 or not at start after edge3.", start2)) return 1;
-    // 5. Take edge2: Start -> Intermediate
-    int edge2id = startToInter[1];
+    // 4. Take edge: Inter1 -> Inter2
     tge::player::runtime::CurrentLocation inter2;
-    if (!moveAndCheckCurrent(engine, start2, edge2id, "Test failed: Could not take edge2 or not at intermediate after edge2.", inter2)) return 1;
-    // 6. Take edge4: Intermediate -> Start
-    tge::player::runtime::CurrentLocation start3;
-    if (!moveAndCheckCurrent(engine, inter2, interToStartIds[1], "Test failed: Could not take edge4 or not at start after edge4.", start3)) return 1;
-    // 7. Take edge1 again: Start -> Intermediate
-    tge::player::runtime::CurrentLocation inter3;
-    if (!moveAndCheckCurrent(engine, start3, startToInter[0], "Test failed: Could not take edge1 again or not at intermediate after edge1 again.", inter3)) return 1;
-    // 8. Take edge5: Intermediate -> Start
-    tge::player::runtime::CurrentLocation start4;
-    if (!moveAndCheckCurrent(engine, inter3, interToStartIds[2], "Test failed: Could not take edge5 or not at start after edge5.", start4)) return 1;
-    // 9. Take edge2 again: Start -> Intermediate
-    tge::player::runtime::CurrentLocation inter4;
-    if (!moveAndCheckCurrent(engine, start4, edge2id, "Test failed: Could not take edge2 again or not at intermediate after edge2 again.", inter4)) return 1;
-    // 10. Take edge from Intermediate to Finish
-    std::vector<int> toFinish = collectEdgeIds(inter4.options, interLoc.id, finishLoc.id);
-    if (toFinish.empty()) {
-        std::cerr << "Test failed: Could not find edge from intermediate to finish." << std::endl;
+    if (!moveAndCheckCurrent(engine, inter1, inter1ToInter2[0], "Test failed: Could not take edge2 or not at inter2 after edge2.", inter2)) return 1;
+    // 5. Collect edge IDs from inter2 to inter1 and finish
+    std::vector<int> inter2ToInter1 = collectEdgeIds(inter2.options, interLoc2.id, interLoc1.id);
+    std::vector<int> inter2ToFinish = collectEdgeIds(inter2.options, interLoc2.id, finishLoc.id);
+    if (inter2ToInter1.size() != 1 || inter2ToFinish.size() != 1) {
+        std::cerr << "Test failed: Expected 1 edge from inter2 to inter1 and 1 to finish, got " << inter2ToInter1.size() << " and " << inter2ToFinish.size() << std::endl;
         return 1;
     }
-    auto t8 = engine.choose(inter4, toFinish[0]);
+    // 6. Take edge: Inter2 -> Inter1 (cycle)
+    tge::player::runtime::CurrentLocation inter1b;
+    if (!moveAndCheckCurrent(engine, inter2, inter2ToInter1[0], "Test failed: Could not take cycle edge or not at inter1 after cycle.", inter1b)) return 1;
+    // 7. Take edge: Inter1 -> Inter2 again
+    tge::player::runtime::CurrentLocation inter2b;
+    if (!moveAndCheckCurrent(engine, inter1b, inter1ToInter2[0], "Test failed: Could not take edge2 again or not at inter2 after edge2 again.", inter2b)) return 1;
+    // 8. Take edge: Inter2 -> Finish
+    auto t8 = engine.choose(inter2b, inter2ToFinish[0]);
     if (!t8.has_value()) { std::cerr << "Test failed: Could not take edge to finish." << std::endl; return 1; }
     auto s9 = engine.step(*t8);
     if (!std::holds_alternative<tge::player::runtime::FinishLocation>(s9)) {

@@ -22,7 +22,11 @@ int main(int argc, char *argv[])
     // Add finish location
     auto& finishLoc = manager.addLocation(LocationType::Finish, "Finish", 12, 1, 0); // Deep Orange
     // Add edge from start to finish
-    manager.addEdge(startLoc.id, finishLoc.id, "Go to finish", "You move to the finish.");
+    auto* edge = manager.addEdge(startLoc.id, finishLoc.id, "Go to finish", "You move to the finish.");
+    if (!edge) {
+        std::cerr << "Test failed: Edge creation error: " << manager.lastError().toStdString() << std::endl;
+        return 1;
+    }
 
     std::cout << "Editor manager test completed." << std::endl;
     return 0;

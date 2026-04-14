@@ -87,17 +87,34 @@ void GraphWidget::cancelEdgeCreation() {
 }
 
 void GraphWidget::finishEdgeCreation(int destinationLocationId) {
-    if (!model || edgeSourceLocationId == -1 || destinationLocationId == -1 || edgeSourceLocationId == destinationLocationId)
+    if (!model || edgeSourceLocationId == -1 || destinationLocationId == -1)
         return;
-    // Add edge using manager
-    auto& edge = model->manager.addEdge(edgeSourceLocationId, destinationLocationId, "", "");
-    // Open edge editing dialog
-    auto& fromLoc = model->gameDef.locations[edgeSourceLocationId];
-    auto& toLoc = model->gameDef.locations[destinationLocationId];
-    EdgeDialog dlg(edge, fromLoc, toLoc, this);
-    if (dlg.exec() == QDialog::Accepted) {
-        edge.optionText = dlg.optionText();
-        edge.transitionText = dlg.transitionText();
+    try {
+        if (edgeSourceLocationId == destinationLocationId) {
+            // Use addLoopEdge for self-pointing edges
+            int serviceLocId = model->manager.addLoopEdge(edgeSourceLocationId, "", "");
+            // Optionally, open dialog for the new service location or edges if needed
+            // For now, just update the viewport
+            viewport()->update();
+        } else {
+            // Add edge using manager
+            auto* edge = model->manager.addEdge(edgeSourceLocationId, destinationLocationId, "", "");
+            if (edge) {
+                // Open edge editing dialog
+                auto& fromLoc = model->gameDef.locations[edgeSourceLocationId];
+                auto& toLoc = model->gameDef.locations[destinationLocationId];
+                EdgeDialog dlg(*edge, fromLoc, toLoc, this);
+                if (dlg.exec() == QDialog::Accepted) {
+                    edge->optionText = dlg.optionText();
+                    edge->transitionText = dlg.transitionText();
+                }
+            } else {
+                qWarning() << "Edge creation error:" << model->manager.lastError();
+            }
+        }
+    } catch (const std::exception& ex) {
+        // Optionally show error to user (QMessageBox or similar)
+        qWarning() << "Edge creation error:" << ex.what();
     }
     cancelEdgeCreation();
     viewport()->update();
