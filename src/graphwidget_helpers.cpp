@@ -84,8 +84,10 @@ void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, do
 
 void drawEdgeStraight(QPainter *painter, const UiModel *model, const tge::domain::EdgeDef &edge, double step) {
     const auto& locations = model->gameDef.locations;
+
     auto from = locations.find(edge.fromLocation);
     auto to = locations.find(edge.toLocation);
+
     if (from != locations.end() && to != locations.end()) {
         QPointF p1(from.value().coordX * step, from.value().coordY * step);
         QPointF p2(to.value().coordX * step, to.value().coordY * step);
@@ -115,6 +117,7 @@ void drawEdgeCurvedSimple(QPainter *painter, const QPointF &p1, const QPointF &p
 // Helper: assign symmetric offsets to all edges between each unordered node pair
 static void computeRepellingOffsets(const UiModel* model, std::map<int, double>& edgeOffset) {
     double baseOffset = 40.0;
+
     // Group all edges by unordered node pair
     std::map<std::pair<int, int>, std::vector<int>> pairToEdgeIds;
     for (auto it = model->gameDef.edges.constBegin(); it != model->gameDef.edges.constEnd(); ++it) {
@@ -124,6 +127,7 @@ static void computeRepellingOffsets(const UiModel* model, std::map<int, double>&
         int b = std::max(edge.fromLocation, edge.toLocation);
         pairToEdgeIds[{a, b}].push_back(i);
     }
+
     // For each group, assign offsets regularly spaced in [-N/2, +N/2]
     for (const auto& group : pairToEdgeIds) {
         const auto& ids = group.second;
@@ -140,25 +144,26 @@ static void computeRepellingOffsets(const UiModel* model, std::map<int, double>&
 void drawEdges(QPainter *painter, const UiModel *model, double step) {
     std::map<int, double> edgeOffset;
     computeRepellingOffsets(model, edgeOffset);
-    std::set<std::pair<int, int>> drawnPairs;
+
     for (auto it = model->gameDef.edges.constBegin(); it != model->gameDef.edges.constEnd(); ++it) {
         int i = it.key();
         const auto& edge = it.value();
         int a = edge.fromLocation;
         int b = edge.toLocation;
-        std::pair<int, int> pairKey = std::minmax(a, b);
-        // Draw each edge only once (by direction or by id)
-        std::pair<int, int> ab(edge.fromLocation, edge.toLocation);
-        std::pair<int, int> ba(edge.toLocation, edge.fromLocation);
-        if (drawnPairs.count(ab) && drawnPairs.count(ba)) continue;
-        drawnPairs.insert(ab);
+
         const auto& locations = model->gameDef.locations;
+
         auto from = locations.find(edge.fromLocation);
         auto to = locations.find(edge.toLocation);
+
         if (from != locations.end() && to != locations.end()) {
             QPointF p1(from.value().coordX * step, from.value().coordY * step);
             QPointF p2(to.value().coordX * step, to.value().coordY * step);
+
             double offset = edgeOffset[i];
+            // Flip offset for reverse direction
+            if (a > b) offset = -offset;
+
             if (offset == 0.0) {
                 painter->setPen(QPen(Qt::darkGreen, 2));
                 painter->drawLine(p1, p2);
