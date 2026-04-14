@@ -21,6 +21,7 @@ class GraphWidget : public QGraphicsView
 public:
     explicit GraphWidget(QWidget *parent = nullptr);
     void setModel(UiModel *model, const AppearanceSettings& appearance = AppearanceSettings());
+    void setNewLocationMode(bool enabled);
 
 protected:
     void wheelEvent(QWheelEvent *event) override;
@@ -34,6 +35,7 @@ protected:
 
 private:
     void centerOnObservedVirtualPoint();
+    void updateCursor();
 
     struct GridSettings {
         double scale = 100.0; // Cell size in pixels
@@ -52,6 +54,10 @@ private:
 
     int hoveredLocationId = -1;
     QPoint memoCursorPos; // Screen position for memo
+    bool newLocationMode = false;
+
+signals:
+    void newLocationCreated();
 };
 
 #endif // GRAPHWIDGET_H

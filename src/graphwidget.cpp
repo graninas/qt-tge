@@ -4,9 +4,15 @@
 #include "gui_model.h"
 #include "locationdialog.h"
 #include "tge/editor/runtime/manager.h"
+#include "tge/domain.h"
+#include <QToolButton> // Remove usage from code, keep for completeness>
 #include <QWheelEvent>
 #include <QPainter>
 #include <cmath>
+#include <QCursor>
+#include <QToolTip>
+#include <QApplication>
+#include <QDebug>
 
 GraphWidget::GraphWidget(QWidget *parent)
     : QGraphicsView(parent)
@@ -19,6 +25,7 @@ GraphWidget::GraphWidget(QWidget *parent)
     rightButtonPressed = false;
     draggingDot = -1;
     model = nullptr;
+    newLocationMode = false;
 }
 
 void GraphWidget::centerOnObservedVirtualPoint()
@@ -39,8 +46,62 @@ void GraphWidget::setModel(UiModel *m, const AppearanceSettings& appearance)
     centerOnObservedVirtualPoint();
 }
 
+void GraphWidget::setNewLocationMode(bool enabled)
+{
+    newLocationMode = enabled;
+    updateCursor();
+}
+
+void GraphWidget::updateCursor()
+{
+    if (newLocationMode) {
+        QPixmap pix(32, 32);
+        pix.fill(Qt::transparent);
+        QPainter p(&pix);
+        p.setRenderHint(QPainter::Antialiasing);
+        p.setPen(QPen(Qt::black, 2));
+        p.drawEllipse(4, 4, 24, 24);
+        p.end();
+        setCursor(QCursor(pix));
+    } else {
+        setCursor(Qt::ArrowCursor);
+    }
+}
+
 void GraphWidget::mousePressEvent(QMouseEvent *event)
 {
+    if (newLocationMode && event->button() == Qt::LeftButton && model) {
+        double step = gridSettings.scale;
+        QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), viewDelta, viewScale);
+        int gridX = std::round(mouseScene.x() / step);
+        int gridY = std::round(mouseScene.y() / step);
+        int newId = -1;
+        // Use manager if available (not a pointer)
+        if constexpr (std::is_member_object_pointer_v<decltype(&UiModel::manager)>) {
+            auto& loc = model->manager.addLocation(
+                tge::domain::LocationType::Regular,
+                QString(), // label
+                0,         // color
+                gridX,
+                gridY
+            );
+            newId = loc.id; // Assuming LocationDef has an id field
+        } else {
+            // fallback: add directly to model
+            newId = model->gameDef.locations.size() > 0 ? (model->gameDef.locations.lastKey() + 1) : 0;
+            tge::domain::LocationDef loc;
+            loc.coordX = gridX;
+            loc.coordY = gridY;
+            loc.type = tge::domain::LocationType::Regular;
+            model->gameDef.locations[newId] = loc;
+        }
+        if (newId != -1) {
+            graphwidget_helpers::editLocationDialog(model, newId, this, [this]() { viewport()->update(); });
+        }
+        // Do not reset mode or emit newLocationCreated; keep mode on for multiple adds
+        event->accept();
+        return;
+    }
     double step = gridSettings.scale;
     if (event->button() == Qt::MiddleButton && model) {
         int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), viewDelta, viewScale, step);

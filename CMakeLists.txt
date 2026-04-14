@@ -27,6 +27,14 @@ set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT Q
 target_sources(Qt-TGE PRIVATE ${UI_FILES})
 target_include_directories(Qt-TGE PRIVATE src)
 
+# Add Qt5 include directories explicitly for header resolution
+include_directories(
+    /usr/include/x86_64-linux-gnu/qt5
+    /usr/include/x86_64-linux-gnu/qt5/QtWidgets
+    /usr/include/x86_64-linux-gnu/qt5/QtGui
+    /usr/include/x86_64-linux-gnu/qt5/QtCore
+)
+
 # Optionally, group sources for IDEs
 source_group("UI Files" FILES ${UI_FILES})
 source_group("Header Files" FILES ${HEADERS})
