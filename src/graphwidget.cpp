@@ -149,6 +149,57 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
         hoveredLocationId = newHovered;
         viewport()->update();
     }
+
+    // Edge hover detection (prototype: only for edge 2-3, straight)
+    int newHoveredEdge = -1;
+    if (model) {
+        QTransform t;
+        t.translate(viewDelta.x(), viewDelta.y());
+        t.scale(viewScale, viewScale);
+        QPointF mouseScene = t.inverted().map(event->pos());
+        double step = gridSettings.scale;
+        // Only check edge between 2 and 3
+        auto eIt = model->gameDef.edges.constFind(0); // Find edge id 0 (or search for 2-3)
+        for (auto eIt = model->gameDef.edges.constBegin(); eIt != model->gameDef.edges.constEnd(); ++eIt) {
+            const auto& edge = eIt.value();
+            if ((edge.fromLocation == 2 && edge.toLocation == 3) || (edge.fromLocation == 3 && edge.toLocation == 2)) {
+                const auto& locs = model->gameDef.locations;
+                auto from = locs.find(edge.fromLocation);
+                auto to = locs.find(edge.toLocation);
+                if (from != locs.end() && to != locs.end()) {
+                    QPointF p1(from.value().coordX * step, from.value().coordY * step);
+                    QPointF p2(to.value().coordX * step, to.value().coordY * step);
+                    QLineF line(p1, p2);
+                    // Manual segment distance (Qt < 5.14 compatible)
+                    QPointF v = p2 - p1;
+                    QPointF w = mouseScene - p1;
+                    double c1 = QPointF::dotProduct(w, v);
+                    double dist;
+                    if (c1 <= 0) {
+                        dist = QLineF(mouseScene, p1).length();
+                    } else {
+                        double c2 = QPointF::dotProduct(v, v);
+                        if (c2 <= c1) {
+                            dist = QLineF(mouseScene, p2).length();
+                        } else {
+                            double b = c1 / c2;
+                            QPointF pb = p1 + b * v;
+                            dist = QLineF(mouseScene, pb).length();
+                        }
+                    }
+                    if (dist <= 8.0) {
+                        newHoveredEdge = eIt.key();
+                        break;
+                    }
+                }
+            }
+        }
+    }
+    if (newHoveredEdge != hoveredEdgeId) {
+        hoveredEdgeId = newHoveredEdge;
+        viewport()->update();
+    }
+
     QGraphicsView::mouseMoveEvent(event);
 }
 
@@ -192,7 +243,7 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
     painter->setRenderHint(QPainter::Antialiasing);
     graphwidget_helpers::drawGrid(painter, rect, gridSettings.scale, viewDelta, viewScale);
     if (model) {
-        graphwidget_helpers::drawEdges(painter, model, gridSettings.scale);
+        graphwidget_helpers::drawEdges(painter, model, gridSettings.scale, hoveredEdgeId);
         graphwidget_helpers::drawLocations(painter, model, gridSettings.scale, appearanceSettings.idOffsetY, appearanceSettings.labelOffsetY, hoveredLocationId);
         // Draw memo on top if hovering
         if (hoveredLocationId != -1) {

@@ -82,7 +82,7 @@ void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, do
     painter->drawPolygon(arrowHead);
 }
 
-void drawEdgeStraight(QPainter *painter, const UiModel *model, const tge::domain::EdgeDef &edge, double step) {
+void drawEdgeStraight(QPainter *painter, const UiModel *model, const tge::domain::EdgeDef &edge, double step, bool hovered = false) {
     const auto& locations = model->gameDef.locations;
 
     auto from = locations.find(edge.fromLocation);
@@ -91,6 +91,8 @@ void drawEdgeStraight(QPainter *painter, const UiModel *model, const tge::domain
     if (from != locations.end() && to != locations.end()) {
         QPointF p1(from.value().coordX * step, from.value().coordY * step);
         QPointF p2(to.value().coordX * step, to.value().coordY * step);
+        QPen pen = hovered ? QPen(Qt::red, 5) : QPen(Qt::darkGreen, 2);
+        painter->setPen(pen);
         painter->drawLine(p1, p2);
         drawArrowHead(painter, p1, p2, 14.0, 14.0);
     }
@@ -141,7 +143,7 @@ static void computeRepellingOffsets(const UiModel* model, std::map<int, double>&
     }
 }
 
-void drawEdges(QPainter *painter, const UiModel *model, double step) {
+void drawEdges(QPainter *painter, const UiModel *model, double step, int hoveredEdgeId) {
     std::map<int, double> edgeOffset;
     computeRepellingOffsets(model, edgeOffset);
 
@@ -164,10 +166,9 @@ void drawEdges(QPainter *painter, const UiModel *model, double step) {
             // Flip offset for reverse direction
             if (a > b) offset = -offset;
 
+            bool isHovered = (i == hoveredEdgeId) && ((a == 2 && b == 3) || (a == 3 && b == 2));
             if (offset == 0.0) {
-                painter->setPen(QPen(Qt::darkGreen, 2));
-                painter->drawLine(p1, p2);
-                drawArrowHead(painter, p1, p2, 14.0, 14.0);
+                drawEdgeStraight(painter, model, edge, step, isHovered);
             } else {
                 drawEdgeCurvedSimple(painter, p1, p2, offset);
             }

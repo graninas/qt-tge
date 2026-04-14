@@ -20,7 +20,8 @@ void drawLocations(QPainter *painter, const UiModel *model, double step, int idO
 void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, const QPoint& pos, const QString& typeStr, const QString& desc);
 
 // Draw all edges
-void drawEdges(QPainter *painter, const UiModel *model, double step);
+void drawEdges(QPainter *painter, const UiModel *model, double step, int hoveredEdgeId = -1);
+void drawEdgeStraight(QPainter *painter, const UiModel *model, const tge::domain::EdgeDef &edge, double step, bool hovered);
 void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, double radius = 10.0, double size = 12.0);
 
 bool isPointOnLocation(const QPointF& scenePoint, const tge::domain::LocationDef& loc, double step, double radius = 10.0);
