@@ -8,6 +8,8 @@
 #include <tuple>
 #include <set>
 #include "gui_model.h"
+#include "locationdialog.h"
+#include <QDialog>
 
 using namespace tge::domain;
 
@@ -291,5 +293,41 @@ QString locationTypeToString(tge::domain::LocationType type, bool lower) {
         default: s = "Normal"; break;
     }
     return lower ? s.toLower() : s;
+}
+
+int findLocationAtMouse(const UiModel* model, const QPoint& mousePos, const QPointF& viewDelta, double viewScale, double step) {
+    if (!model) return -1;
+    QTransform t;
+    t.translate(viewDelta.x(), viewDelta.y());
+    t.scale(viewScale, viewScale);
+    QPointF mouseScene = t.inverted().map(mousePos);
+    for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
+        int id = it.key();
+        const auto& loc = it.value();
+        if (isPointOnLocation(mouseScene, loc, step)) {
+            return id;
+        }
+    }
+    return -1;
+}
+
+QPointF mouseToScene(const QPoint& mousePos, const QPointF& viewDelta, double viewScale) {
+    QTransform t;
+    t.translate(viewDelta.x(), viewDelta.y());
+    t.scale(viewScale, viewScale);
+    return t.inverted().map(mousePos);
+}
+
+void editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::function<void()> onUpdate) {
+    if (!model) return;
+    LocationDialog dlg(&model->gameDef.locations[locationId], &model->manager, parent);
+    if (dlg.exec() == QDialog::Accepted) {
+        model->gameDef.locations[locationId].label = dlg.label();
+        auto descs = dlg.descriptions();
+        auto& descPack = model->gameDef.locations[locationId].descriptionPack.descriptions;
+        descPack.clear();
+        for (const auto& d : descs) descPack.append(d);
+        if (onUpdate) onUpdate();
+    }
 }
 } // namespace graphwidget_helpers

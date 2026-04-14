@@ -26,6 +26,15 @@ void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, do
 bool isPointOnLocation(const QPointF& scenePoint, const tge::domain::LocationDef& loc, double step, double radius = 10.0);
 QString firstDescription(const tge::domain::LocationDef& loc);
 QString locationTypeToString(tge::domain::LocationType type, bool lower = false);
+
+// Returns the id of the location under the given mouse position, or -1 if none
+int findLocationAtMouse(const UiModel* model, const QPoint& mousePos, const QPointF& viewDelta, double viewScale, double step);
+
+// Transforms a mouse position to scene coordinates
+QPointF mouseToScene(const QPoint& mousePos, const QPointF& viewDelta, double viewScale);
+
+// Opens the LocationDialog for the given location id, updates label and descriptions if accepted
+void editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::function<void()> onUpdate = nullptr);
 }
 
 #endif // GRAPHWIDGET_HELPERS_H
