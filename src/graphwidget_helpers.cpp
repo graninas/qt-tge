@@ -250,7 +250,7 @@ void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, co
     int width = 0;
     for (const QString& line : lines) width = std::max(width, fm.horizontalAdvance(line));
     int height = lines.size() * fm.height();
-    QRect rect(pos.x() + 10, pos.y() + 10, width + 2*pad, height + 2*pad);
+    QRect rect(pos.x() + 25, pos.y() + 20, width + 2*pad, height + 2*pad);
 
     // Shadow
     QRect shadowRect = rect.translated(shadowOffset, shadowOffset);
