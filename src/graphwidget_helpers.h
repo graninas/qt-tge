@@ -15,7 +15,7 @@ extern const QColor LOCATION_COLOR_PALETTE[LOCATION_COLOR_COUNT];
 void drawGrid(QPainter *painter, const QRectF &rect, double step, const QPointF &viewDelta, double viewScale);
 
 // Draw all locations
-void drawLocations(QPainter *painter, const UiModel *model, double step, int idOffsetY, int labelOffsetY);
+void drawLocations(QPainter *painter, const UiModel *model, double step, int idOffsetY, int labelOffsetY, int hoveredLocationId = -1);
 
 // Draw all edges
 void drawEdges(QPainter *painter, const UiModel *model, double step);

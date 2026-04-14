@@ -175,7 +175,7 @@ void drawEdges(QPainter *painter, const UiModel *model, double step) {
     }
 }
 
-void drawLocations(QPainter *painter, const UiModel *model, double step, int idOffsetY, int labelOffsetY) {
+void drawLocations(QPainter *painter, const UiModel *model, double step, int idOffsetY, int labelOffsetY, int hoveredLocationId) {
     for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
         const auto& loc = it.value();
         QPointF pos(loc.coordX * step, loc.coordY * step);
@@ -198,6 +198,13 @@ void drawLocations(QPainter *painter, const UiModel *model, double step, int idO
         painter->setPen(QPen(Qt::black, 2));
         painter->setBrush(QBrush(fillColor));
         painter->drawEllipse(pos, 10, 10);
+        // Draw hover effect
+        if (hoveredLocationId == loc.id) {
+            QPen hoverPen(Qt::darkGreen, 2, Qt::DashLine);
+            painter->setPen(hoverPen);
+            painter->setBrush(Qt::NoBrush);
+            painter->drawEllipse(pos, 18, 18);
+        }
         // Draw id above
         painter->setPen(Qt::black);
         QFont font = painter->font();

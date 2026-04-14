@@ -48,6 +48,8 @@ private:
     int draggingDot = -1; // -1: none, 0: dot1, 1: dot2
     QPointF dragOffset;   // Offset from mouse to dot center
     UiModel *model = nullptr;
+
+    int hoveredLocationId = -1;
 };
 
 #endif // GRAPHWIDGET_H

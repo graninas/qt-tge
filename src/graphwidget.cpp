@@ -70,6 +70,7 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
 
 void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 {
+    bool hoverChanged = false;
     if (rightButtonPressed) {
         QPoint delta = event->pos() - lastMousePos;
         viewDelta += QPointF(delta.x(), delta.y());
@@ -90,6 +91,28 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
         viewport()->update();
         event->accept();
         return;
+    }
+    // Hover detection
+    int newHovered = -1;
+    if (model) {
+        QTransform t;
+        t.translate(viewDelta.x(), viewDelta.y());
+        t.scale(viewScale, viewScale);
+        QPointF mouseScene = t.inverted().map(event->pos());
+        double step = gridSettings.scale;
+        for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
+            int id = it.key();
+            const auto& loc = it.value();
+            QPointF pos(loc.coordX * step, loc.coordY * step);
+            if (QLineF(mouseScene, pos).length() <= 10) {
+                newHovered = id;
+                break;
+            }
+        }
+    }
+    if (newHovered != hoveredLocationId) {
+        hoveredLocationId = newHovered;
+        viewport()->update();
     }
     QGraphicsView::mouseMoveEvent(event);
 }
@@ -135,7 +158,7 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
     graphwidget_helpers::drawGrid(painter, rect, gridSettings.scale, viewDelta, viewScale);
     if (model) {
         graphwidget_helpers::drawEdges(painter, model, gridSettings.scale);
-        graphwidget_helpers::drawLocations(painter, model, gridSettings.scale, appearanceSettings.idOffsetY, appearanceSettings.labelOffsetY);
+        graphwidget_helpers::drawLocations(painter, model, gridSettings.scale, appearanceSettings.idOffsetY, appearanceSettings.labelOffsetY, hoveredLocationId);
     }
     painter->restore();
 }
