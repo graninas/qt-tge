@@ -47,3 +47,6 @@ Qt-TGE_autogen/
 
 # mocs_compilation.cpp file
 mocs_compilation.cpp
+
+CTestTestfile.cmake
+Qt-TGE
