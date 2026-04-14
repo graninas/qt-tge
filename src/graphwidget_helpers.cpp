@@ -211,7 +211,7 @@ void drawLocations(QPainter *painter, const UiModel *model, double step, int idO
         font.setBold(true);
         font.setPointSize(9);
         painter->setFont(font);
-        QRectF idRect(pos.x() - 16, pos.y() + idOffsetY, 32, 14);
+        QRectF idRect(pos.x() - 16, pos.y() + idOffsetY - 18, 32, 18); // Move id label higher
         painter->drawText(idRect, Qt::AlignCenter, QString::number(loc.id));
         // Draw label below (max 7 chars)
         QString label = loc.label;
@@ -219,7 +219,7 @@ void drawLocations(QPainter *painter, const UiModel *model, double step, int idO
         font.setBold(false);
         font.setPointSize(8);
         painter->setFont(font);
-        QRectF labelRect(pos.x() - 16, pos.y() + labelOffsetY, 32, 14);
+        QRectF labelRect(pos.x() - 50, pos.y() + labelOffsetY, 100, 18); // Increased width from 32 to 56
         painter->setPen(Qt::darkGray);
         painter->drawText(labelRect, Qt::AlignCenter, label);
     }
