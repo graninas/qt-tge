@@ -219,3 +219,35 @@ void GraphWidget::resizeEvent(QResizeEvent *event)
     centerOnObservedVirtualPoint();
 }
 
+void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
+{
+    using graphwidget_helpers::isPointOnLocation;
+    using graphwidget_helpers::locationTypeToString;
+
+    if (event->button() == Qt::LeftButton && model) {
+        QTransform t;
+        t.translate(viewDelta.x(), viewDelta.y());
+        t.scale(viewScale, viewScale);
+        QPointF mouseScene = t.inverted().map(event->pos());
+        double step = gridSettings.scale;
+        for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
+            int id = it.key();
+            const auto& loc = it.value();
+            if (graphwidget_helpers::isPointOnLocation(mouseScene, loc, step)) {
+                LocationDialog dlg(&model->gameDef.locations[id], &model->manager, this);
+                if (dlg.exec() == QDialog::Accepted) {
+                    model->gameDef.locations[id].label = dlg.label();
+                    auto descs = dlg.descriptions();
+                    auto& descPack = model->gameDef.locations[id].descriptionPack.descriptions;
+                    descPack.clear();
+                    for (const auto& d : descs) descPack.append(d);
+                    viewport()->update();
+                }
+                event->accept();
+                return;
+            }
+        }
+    }
+    QGraphicsView::mouseDoubleClickEvent(event);
+}
+
