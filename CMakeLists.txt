@@ -12,7 +12,7 @@ find_package(Qt5 REQUIRED COMPONENTS Widgets Core Gui)
 set(UI_FILES src/ui/mainwindow.ui)
 
 # Sources
-set(SOURCES src/main.cpp src/mainwindow.cpp src/graphwidget.cpp src/graphwidget_edges.cpp src/gui_model.cpp src/graphwidget_helpers.cpp src/locationdialog.cpp src/edgedialog.cpp src/edgelistitemwidget.cpp)
+set(SOURCES src/main.cpp src/mainwindow.cpp src/graphwidget.cpp src/graphwidget_edges.cpp src/graphwidget_locations.cpp src/gui_model.cpp src/graphwidget_helpers.cpp src/locationdialog.cpp src/edgedialog.cpp src/edgelistitemwidget.cpp)
 set(HEADERS src/mainwindow.h src/graphwidget.h src/edgedialog.h src/edgelistitemwidget.h)
 
 set(CMAKE_AUTOMOC ON)

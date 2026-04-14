@@ -1,6 +1,7 @@
 #include "graphwidget.h"
 #include "graphwidget_helpers.h"
 #include "graphwidget_edges.h"
+#include "graphwidget_locations.h"
 #include "tge/domain.h"
 #include "gui_model.h"
 #include "locationdialog.h"
@@ -108,41 +109,14 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         return;
     }
     if (newLocationMode && event->button() == Qt::LeftButton && model) {
-        double step = gridSettings.scale;
-        QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), viewDelta, viewScale);
-        int gridX = std::round(mouseScene.x() / step);
-        int gridY = std::round(mouseScene.y() / step);
-        int newId = -1;
-        // Use manager if available (not a pointer)
-        if constexpr (std::is_member_object_pointer_v<decltype(&UiModel::manager)>) {
-            auto& loc = model->manager.addLocation(
-                QString(), // label
-                0,         // color
-                gridX,
-                gridY
-            );
-            newId = loc.id; // Assuming LocationDef has an id field
-        } else {
-            // fallback: add directly to model
-            newId = model->gameDef.locations.size() > 0 ? (model->gameDef.locations.lastKey() + 1) : 0;
-            tge::domain::LocationDef loc;
-            loc.coordX = gridX;
-            loc.coordY = gridY;
-            loc.type = tge::domain::LocationType::Regular;
-            model->gameDef.locations[newId] = loc;
-        }
-        if (newId != -1) {
-            graphwidget_helpers::editLocationDialog(model, newId, this, [this]() { viewport()->update(); });
-        }
-        // Do not reset mode or emit newLocationCreated; keep mode on for multiple adds
-        event->accept();
+        graphwidget_locations::handleNewLocationMode(this, event);
         return;
     }
     double step = gridSettings.scale;
     if (event->button() == Qt::MiddleButton && model) {
         int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), viewDelta, viewScale, step);
         if (id != -1) {
-            graphwidget_helpers::editLocationDialog(model, id, this, [this]() { viewport()->update(); });
+            graphwidget_locations::handleLocationEdit(this, id);
             event->accept();
             return;
         }
@@ -188,16 +162,7 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
     }
 
     if (draggingDot != -1 && model) {
-        QTransform t;
-        t.translate(viewDelta.x(), viewDelta.y());
-        t.scale(viewScale, viewScale);
-        QPointF mouseScene = t.inverted().map(event->pos());
-        double step = gridSettings.scale;
-        QPointF newPos = mouseScene - dragOffset;
-        model->gameDef.locations[draggingDot].coordX = newPos.x() / step;
-        model->gameDef.locations[draggingDot].coordY = newPos.y() / step;
-        viewport()->update();
-        event->accept();
+        graphwidget_locations::handleLocationDrag(this, event);
         return;
     }
     // Hover detection
@@ -323,7 +288,7 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton && model) {
         int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), viewDelta, viewScale, step);
         if (id != -1) {
-            graphwidget_helpers::editLocationDialog(model, id, this, [this]() { viewport()->update(); });
+            graphwidget_locations::handleLocationEdit(this, id);
             event->accept();
             return;
         }

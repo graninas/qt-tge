@@ -20,6 +20,12 @@ namespace graphwidget_edges {
     void cancelEdgeCreation(GraphWidget*);
     void finishEdgeCreation(GraphWidget*, int);
 }
+namespace graphwidget_locations {
+    void handleNewLocationMode(GraphWidget*, QMouseEvent*);
+    void handleLocationDrag(GraphWidget*, QMouseEvent*);
+    void handleLocationHover(GraphWidget*, QMouseEvent*);
+    void handleLocationEdit(GraphWidget*, int);
+}
 
 class UiModel;
 
@@ -75,6 +81,10 @@ private:
     friend void graphwidget_edges::startEdgeCreation(GraphWidget*);
     friend void graphwidget_edges::cancelEdgeCreation(GraphWidget*);
     friend void graphwidget_edges::finishEdgeCreation(GraphWidget*, int);
+    friend void graphwidget_locations::handleNewLocationMode(GraphWidget*, QMouseEvent*);
+    friend void graphwidget_locations::handleLocationDrag(GraphWidget*, QMouseEvent*);
+    friend void graphwidget_locations::handleLocationHover(GraphWidget*, QMouseEvent*);
+    friend void graphwidget_locations::handleLocationEdit(GraphWidget*, int);
 
     void startEdgeCreation();
     void cancelEdgeCreation();
