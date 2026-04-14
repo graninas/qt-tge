@@ -71,14 +71,19 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
 void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 {
     bool hoverChanged = false;
-    if (rightButtonPressed) {
-        QPoint delta = event->pos() - lastMousePos;
-        viewDelta += QPointF(delta.x(), delta.y());
-        lastMousePos = event->pos();
-        viewport()->update();
-        event->accept();
-        return;
+
+    memoCursorPos = event->pos();
+
+    if (rightButtonPressed)
+    {
+      QPoint delta = event->pos() - lastMousePos;
+      viewDelta += QPointF(delta.x(), delta.y());
+      lastMousePos = event->pos();
+      viewport()->update();
+      event->accept();
+      return;
     }
+
     if (draggingDot != -1 && model) {
         QTransform t;
         t.translate(viewDelta.x(), viewDelta.y());
@@ -159,6 +164,24 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
     if (model) {
         graphwidget_helpers::drawEdges(painter, model, gridSettings.scale);
         graphwidget_helpers::drawLocations(painter, model, gridSettings.scale, appearanceSettings.idOffsetY, appearanceSettings.labelOffsetY, hoveredLocationId);
+        // Draw memo on top if hovering
+        if (hoveredLocationId != -1) {
+            painter->save();
+            painter->resetTransform(); // Draw memo in viewport coordinates
+            const auto& loc = model->gameDef.locations[hoveredLocationId];
+            QString typeStr;
+            switch (loc.type) {
+                case tge::domain::LocationType::Start: typeStr = "start"; break;
+                case tge::domain::LocationType::Finish: typeStr = "finish"; break;
+                case tge::domain::LocationType::Service: typeStr = "service"; break;
+                default: typeStr = "regular"; break;
+            }
+            QString desc;
+            if (!loc.descriptionPack.descriptions.isEmpty())
+                desc = loc.descriptionPack.descriptions[0];
+            graphwidget_helpers::drawLocationMemo(painter, loc, memoCursorPos, typeStr, desc);
+            painter->restore();
+        }
     }
     painter->restore();
 }

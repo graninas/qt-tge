@@ -4,6 +4,7 @@
 #include <QPainter>
 #include <QColor>
 #include <QRectF>
+#include "tge/domain.h"
 
 class UiModel;
 
@@ -16,6 +17,7 @@ void drawGrid(QPainter *painter, const QRectF &rect, double step, const QPointF 
 
 // Draw all locations
 void drawLocations(QPainter *painter, const UiModel *model, double step, int idOffsetY, int labelOffsetY, int hoveredLocationId = -1);
+void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, const QPoint& pos, const QString& typeStr, const QString& desc);
 
 // Draw all edges
 void drawEdges(QPainter *painter, const UiModel *model, double step);

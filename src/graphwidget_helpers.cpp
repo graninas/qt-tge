@@ -224,4 +224,49 @@ void drawLocations(QPainter *painter, const UiModel *model, double step, int idO
         painter->drawText(labelRect, Qt::AlignCenter, label);
     }
 }
+
+void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, const QPoint& pos, const QString& typeStr, const QString& desc) {
+    // Memo style
+    QColor bgColor(255, 255, 180);
+    QColor borderColor(220, 180, 40);
+    QColor shadowColor(0, 0, 0, 60);
+    int pad = 8;
+    int radius = 10;
+    int shadowOffset = 4;
+    QFont font = painter->font();
+    font.setPointSize(10);
+    painter->setFont(font);
+
+    // Compose text
+    QString idType = QString("%1 (%2): (%3,%4)").arg(loc.id).arg(typeStr).arg(loc.coordX).arg(loc.coordY);
+    QString label = loc.label;
+    QStringList lines;
+    lines << idType;
+    if (!label.isEmpty()) lines << label;
+    if (!desc.isEmpty()) lines << desc;
+
+    // Measure
+    QFontMetrics fm(font);
+    int width = 0;
+    for (const QString& line : lines) width = std::max(width, fm.horizontalAdvance(line));
+    int height = lines.size() * fm.height();
+    QRect rect(pos.x() + 10, pos.y() + 10, width + 2*pad, height + 2*pad);
+
+    // Shadow
+    QRect shadowRect = rect.translated(shadowOffset, shadowOffset);
+    painter->setBrush(shadowColor);
+    painter->setPen(Qt::NoPen);
+    painter->drawRoundedRect(shadowRect, radius, radius);
+    // Background
+    painter->setBrush(bgColor);
+    painter->setPen(QPen(borderColor, 2));
+    painter->drawRoundedRect(rect, radius, radius);
+    // Text
+    painter->setPen(Qt::black);
+    int y = rect.top() + pad + fm.ascent();
+    for (const QString& line : lines) {
+        painter->drawText(rect.left() + pad, y, line);
+        y += fm.height();
+    }
+}
 } // namespace graphwidget_helpers

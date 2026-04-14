@@ -50,6 +50,7 @@ private:
     UiModel *model = nullptr;
 
     int hoveredLocationId = -1;
+    QPoint memoCursorPos; // Screen position for memo
 };
 
 #endif // GRAPHWIDGET_H
