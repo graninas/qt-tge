@@ -56,14 +56,19 @@ public:
             state.edges.emplace(edgeId, std::move(edgeState));
         }
 
-        // Step 3: Assign toLocation pointers for all edges
+        // Step 3: Assign toLocation and fromLocation pointers for all edges
         for (auto& edgePair : state.edges) {
             auto& edgeState = edgePair.second;
             if (edgeState->def) {
                 int toId = edgeState->def->toLocation;
-                auto locIt = state.locations.find(toId);
-                if (locIt != state.locations.end()) {
-                    edgeState->toLocation = locIt->second.get();
+                auto locToIt = state.locations.find(toId);
+                if (locToIt != state.locations.end()) {
+                    edgeState->toLocation = locToIt->second.get();
+                }
+                int fromId = edgeState->def->fromLocation;
+                auto locFromIt = state.locations.find(fromId);
+                if (locFromIt != state.locations.end()) {
+                    edgeState->fromLocation = locFromIt->second.get();
                 }
             }
         }

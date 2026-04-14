@@ -24,6 +24,7 @@ struct VariableState {
 // Dynamic edge state
 struct EdgeState {
     const EdgeDef* def; // Reference to static definition
+    const struct LocationState* fromLocation = nullptr; // Pointer to dynamic source location
     const struct LocationState* toLocation = nullptr; // Pointer to dynamic destination location
 };
 
