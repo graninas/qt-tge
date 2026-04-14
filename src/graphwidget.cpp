@@ -2,6 +2,7 @@
 #include "graphwidget_helpers.h"
 #include "tge/domain.h"
 #include "gui_model.h"
+#include "locationdialog.h"
 #include <QWheelEvent>
 #include <QPainter>
 #include <cmath>
@@ -39,6 +40,32 @@ void GraphWidget::setModel(UiModel *m, const AppearanceSettings& appearance)
 
 void GraphWidget::mousePressEvent(QMouseEvent *event)
 {
+    if (event->button() == Qt::MiddleButton && model) {
+        QTransform t;
+        t.translate(viewDelta.x(), viewDelta.y());
+        t.scale(viewScale, viewScale);
+        QPointF mouseScene = t.inverted().map(event->pos());
+        double step = gridSettings.scale;
+        for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
+            int id = it.key();
+            const auto& loc = it.value();
+            QPointF pos(loc.coordX * step, loc.coordY * step);
+            if (QLineF(mouseScene, pos).length() <= 10) {
+                // Show dialog
+                QString typeStr;
+                switch (loc.type) {
+                    case tge::domain::LocationType::Start: typeStr = "Start"; break;
+                    case tge::domain::LocationType::Finish: typeStr = "Finish"; break;
+                    case tge::domain::LocationType::Service: typeStr = "Service"; break;
+                    default: typeStr = "Normal"; break;
+                }
+                LocationDialog dlg(loc, typeStr, this);
+                dlg.exec();
+                event->accept();
+                return;
+            }
+        }
+    }
     if (event->button() == Qt::RightButton) {
         rightButtonPressed = true;
         lastMousePos = event->pos();
