@@ -1,0 +1,4 @@
+TODOs:
+
+- Switch location dialog opening from middle mouse button to left mouse button
+- Improve dialog appearance (size, layout, UX)
