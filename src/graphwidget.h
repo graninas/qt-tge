@@ -14,6 +14,13 @@
 #include "gui_model.h"
 
 
+class GraphWidget;
+namespace graphwidget_edges {
+    void startEdgeCreation(GraphWidget*);
+    void cancelEdgeCreation(GraphWidget*);
+    void finishEdgeCreation(GraphWidget*, int);
+}
+
 class UiModel;
 
 class GraphWidget : public QGraphicsView
@@ -64,6 +71,10 @@ private:
     EdgeCreationState edgeCreationState = EdgeCreationState::None;
     int edgeSourceLocationId = -1;
     QPointF edgeTempTarget; // Scene position of mouse during edge creation
+
+    friend void graphwidget_edges::startEdgeCreation(GraphWidget*);
+    friend void graphwidget_edges::cancelEdgeCreation(GraphWidget*);
+    friend void graphwidget_edges::finishEdgeCreation(GraphWidget*, int);
 
     void startEdgeCreation();
     void cancelEdgeCreation();
