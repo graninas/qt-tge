@@ -3,6 +3,7 @@
 #include "tge/domain.h"
 #include "gui_model.h"
 #include "locationdialog.h"
+#include "tge/editor/runtime/manager.h"
 #include <QWheelEvent>
 #include <QPainter>
 #include <cmath>
@@ -54,12 +55,10 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
             const auto& loc = it.value();
             if (graphwidget_helpers::isPointOnLocation(mouseScene, loc, step)) {
                 // Show dialog
-                QString typeStr = locationTypeToString(loc.type);
-                LocationDialog dlg(loc, typeStr, this);
+                //QString typeStr = locationTypeToString(loc.type); // not needed
+                LocationDialog dlg(&model->gameDef.locations[id], &model->manager, this);
                 if (dlg.exec() == QDialog::Accepted) {
-                    // Save label
                     model->gameDef.locations[id].label = dlg.label();
-                    // Save all descriptions
                     auto descs = dlg.descriptions();
                     auto& descPack = model->gameDef.locations[id].descriptionPack.descriptions;
                     descPack.clear();

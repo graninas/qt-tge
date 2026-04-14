@@ -1,4 +1,7 @@
 #include "locationdialog.h"
+#include "edgedialog.h"
+#include "edgelistitemwidget.h"
+#include "tge/editor/runtime/manager.h"
 #include <QVBoxLayout>
 #include <QLabel>
 #include <QLineEdit>
@@ -7,22 +10,25 @@
 #include <QTabWidget>
 #include <QPushButton>
 #include <QHBoxLayout>
-#include "tge/domain.h"
+#include <QListWidget>
+#include <QMessageBox>
 
-LocationDialog::LocationDialog(const tge::domain::LocationDef& loc, const QString& typeStr, QWidget* parent)
-    : QDialog(parent)
+using tge::editor::runtime::Manager;
+
+LocationDialog::LocationDialog(tge::domain::LocationDef* loc, Manager* manager, QWidget* parent)
+    : QDialog(parent), m_location(loc), m_manager(manager)
 {
     setWindowTitle(tr("Location Info"));
     QVBoxLayout* layout = new QVBoxLayout(this);
 
     // ID and coords (read-only)
-    QString idType = QString("%1 (%2): (%3,%4)").arg(loc.id).arg(typeStr).arg(loc.coordX).arg(loc.coordY);
+    QString idType = QString("%1 (%2): (%3,%4)").arg(loc->id).arg(static_cast<int>(loc->type)).arg(loc->coordX).arg(loc->coordY);
     QLabel* idLabel = new QLabel(idType, this);
     layout->addWidget(idLabel);
 
     // Label
     layout->addWidget(new QLabel(tr("Label:"), this));
-    m_labelEdit = new QLineEdit(loc.label, this);
+    m_labelEdit = new QLineEdit(loc->label, this);
     layout->addWidget(m_labelEdit);
 
     // Description tabs
@@ -35,10 +41,9 @@ LocationDialog::LocationDialog(const tge::domain::LocationDef& loc, const QStrin
     layout->addLayout(descBtnLayout);
     m_descTabs = new QTabWidget(this);
     layout->addWidget(m_descTabs);
-    // Fill tabs from descriptionPack
     int idx = 1;
-    if (!loc.descriptionPack.descriptions.isEmpty()) {
-        for (const QString& desc : loc.descriptionPack.descriptions) {
+    if (!loc->descriptionPack.descriptions.isEmpty()) {
+        for (const QString& desc : loc->descriptionPack.descriptions) {
             addDescriptionTab(desc);
             ++idx;
         }
@@ -47,6 +52,13 @@ LocationDialog::LocationDialog(const tge::domain::LocationDef& loc, const QStrin
     }
     connect(m_addDescBtn, &QPushButton::clicked, this, [this]() { addDescriptionTab(); });
     connect(m_removeDescBtn, &QPushButton::clicked, this, [this]() { removeLastDescriptionTab(); });
+
+    // --- Edges area ---
+    layout->addWidget(new QLabel(tr("Edges (incoming/outgoing):"), this));
+    m_edgeListWidget = new QListWidget(this);
+    layout->addWidget(m_edgeListWidget);
+    populateEdgeList();
+    connect(m_edgeListWidget, &QListWidget::itemClicked, this, &LocationDialog::onEdgeItemClicked);
 
     // Buttons
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
@@ -82,5 +94,47 @@ void LocationDialog::removeLastDescriptionTab() {
         QWidget* last = m_descTabs->widget(count - 1);
         m_descTabs->removeTab(count - 1);
         delete last;
+    }
+}
+
+void LocationDialog::populateEdgeList() {
+    m_edgeListWidget->clear();
+    // Outgoing and incoming edges
+    auto& game = m_manager->game();
+    for (auto it = game.edges.begin(); it != game.edges.end(); ++it) {
+        const auto& edge = it.value();
+        if (edge.fromLocation == m_location->id || edge.toLocation == m_location->id) {
+            EdgeListItemWidget* widget = new EdgeListItemWidget(edge, m_location->id, m_edgeListWidget);
+            QListWidgetItem* item = new QListWidgetItem(m_edgeListWidget);
+            item->setSizeHint(widget->sizeHint());
+            m_edgeListWidget->addItem(item);
+            m_edgeListWidget->setItemWidget(item, widget);
+            connect(widget, &EdgeListItemWidget::deleteRequested, this, &LocationDialog::onEdgeDeleteRequested);
+        }
+    }
+}
+
+void LocationDialog::onEdgeDeleteRequested(int edgeId) {
+    if (QMessageBox::question(this, tr("Delete Edge"), tr("Delete edge %1?").arg(edgeId)) == QMessageBox::Yes) {
+        m_manager->deleteEdge(edgeId);
+        populateEdgeList();
+    }
+}
+
+void LocationDialog::onEdgeItemClicked(QListWidgetItem* item) {
+    // Open edge dialog for editing
+    auto& game = m_manager->game();
+    EdgeListItemWidget* widget = qobject_cast<EdgeListItemWidget*>(m_edgeListWidget->itemWidget(item));
+    if (!widget) return;
+    int edgeId = widget->edgeId();
+    if (!game.edges.contains(edgeId)) return;
+    auto& edge = game.edges[edgeId];
+    auto& fromLoc = game.locations[edge.fromLocation];
+    auto& toLoc = game.locations[edge.toLocation];
+    EdgeDialog dlg(edge, fromLoc, toLoc, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        edge.optionText = dlg.optionText();
+        edge.transitionText = dlg.transitionText();
+        populateEdgeList();
     }
 }

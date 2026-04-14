@@ -2,6 +2,8 @@
 #define GUI_MODEL_H
 
 #include "tge/domain.h"
+#include "tge/editor/runtime/manager.h"
+#include "tge/editor/types.h"
 #include <QPointF>
 #include <QString>
 
@@ -18,6 +20,11 @@ public:
     QPointF observedVirtualPoint = QPointF(0, 0);
     AppearanceSettings appearance;
     tge::domain::GameDef gameDef;
+    tge::editor::EditorState editorState;
+    tge::editor::IdGenerator idGen;
+    tge::editor::runtime::Manager manager;
+
+    UiModel() : manager(gameDef, editorState, idGen) {}
 
     static UiModel makeTestGraph();
 };

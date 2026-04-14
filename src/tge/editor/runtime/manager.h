@@ -81,6 +81,9 @@ public:
         return { game.locations[edge.fromLocation], game.locations[edge.toLocation] };
     }
 
+    domain::GameDef& game() { return m_game; }
+    const domain::GameDef& game() const { return m_game; }
+
 private:
     domain::GameDef& m_game;
     EditorState& m_state;
