@@ -35,7 +35,7 @@ This document outlines the requirements and design considerations for the formul
 - **Random value selection** from ranges (e.g., `[1..64]` picks a random value in range)
 - **Set exclusion** (e.g., `[1..49;51..98;100]` excludes 50 and 99)
 - **Logical expressions** return 1 for true, 0 for false (usable in arithmetic)
-- **Division by zero** sets parameter to its maximum possible value
+- **Division by zero** is an error (see rules below)
 - **Parentheses** for explicit precedence
 - **Whitespace** is ignored
 
@@ -45,11 +45,15 @@ This document outlines the requirements and design considerations for the formul
 - **Parentheses** for grouping
 - **Infix notation** for all operators
 
-## 7. Error Handling
-- Invalid expressions must be detected and reported
-- Division by zero must be handled gracefully
-- Out-of-range or undefined parameter/variable references must be reported
-- Selector errors must be handled (reaction to be defined)
+## 7. Rules and Error Handling
+- **Division by zero:** Treated as an error. The expression must not evaluate or assign a value if division by zero occurs.
+- **Integer and float mix:** If an operation mixes integer and float, the result is a float.
+- **Float precision:** Floats are limited to 3 digits after the decimal point (e.g., 1.234).
+- **Ambiguous precedence:** Expressions with ambiguous operator precedence are not allowed and must produce an error. Parentheses are required to clarify such cases.
+- **Unary minus:** Not supported. Use the `neg()` function for negation instead (e.g., `neg([p1])`).
+- **Invalid expressions:** Must be detected and reported.
+- **Out-of-range or undefined parameter/variable references:** Must be reported as errors.
+- **Selector errors:** Must be handled (reaction to be defined).
 
 ## 8. Extensibility
 - The system should allow for easy addition of new operators or functions in the future
@@ -59,7 +63,7 @@ This document outlines the requirements and design considerations for the formul
 - `([p1]>=30) and ([p2]=1)`
 - `([p3]>80)`
 - `([p1] in (0 to [p4]) and ([p2]=1))`
-- `(([-2*3]) and (1<2))`
+- `((neg(2*3)) and (1<2))`
 - `{([p5] div 30)+1}`
 - `[1..64]`
 - `[p2] to [p8]`
