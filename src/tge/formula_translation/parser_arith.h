@@ -32,6 +32,6 @@ private:
 };
 
 // Parse an expression, returns unique_ptr<ASTNode>
-std::unique_ptr<struct ASTNode> parse_expr(Tokenizer& tz);
+std::unique_ptr<tge::formula_translation::ASTNode> parse_expr(Tokenizer& tz);
 
 } // namespace tge::formula_translation

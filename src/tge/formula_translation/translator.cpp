@@ -15,6 +15,8 @@ std::variant<EvaluationModel, std::string> parse_formula_impl(const std::string 
     Tokenizer tz(formula);
     std::cout << "[DEBUG] Initial token type: " << static_cast<int>(tz.current().type) << ", value: " << tz.current().value << std::endl;
     auto ast = parse_expr(tz);
+    // Ensure all tokens are consumed (skip whitespace, etc.)
+    while (tz.current().type != Tokenizer::TokenType::End && tz.pos() < tz.input().size()) tz.next();
     std::cout << "[DEBUG] After parse_expr, token type: " << static_cast<int>(tz.current().type) << ", pos: " << tz.pos() << std::endl;
     if (tz.current().type != Tokenizer::TokenType::End)
     {
