@@ -3,54 +3,56 @@
 #include <iostream>
 #include <vector>
 #include <string>
+#include <cmath>
+#include <variant>
 
-using namespace tge::formula_translation;
-
-void run_test(const std::string& formula) {
-    std::cout << "Testing formula: " << formula << std::endl;
-    auto parse_result = parse_formula(formula);
-    if (std::holds_alternative<std::string>(parse_result)) {
-        std::cout << "  Parse error: " << std::get<std::string>(parse_result) << std::endl;
-        return;
-    }
-    const EvaluationModel& model = std::get<EvaluationModel>(parse_result);
-    Context ctx;
-    auto eval_result = eval_formula(model, ctx);
-    if (std::holds_alternative<std::string>(eval_result)) {
-        std::cout << "  Eval error: " << std::get<std::string>(eval_result) << std::endl;
-        return;
-    }
-    const Value& value = std::get<Value>(eval_result);
-    switch (value.type) {
-        case Value::Type::Int:
-            std::cout << "  Result: int " << value.intValue << std::endl;
-            break;
-        case Value::Type::Float:
-            std::cout << "  Result: float " << value.floatValue << std::endl;
-            break;
-        case Value::Type::Bool:
-            std::cout << "  Result: bool " << (value.boolValue ? "true" : "false") << std::endl;
-            break;
-        default:
-            std::cout << "  Result: unknown type" << std::endl;
-    }
-}
+using tge::formula_translation::parse_formula;
+using tge::formula_translation::eval_formula;
+using tge::formula_translation::EvaluationModel;
+using tge::formula_translation::Context;
+using tge::formula_translation::Value;
 
 int main() {
-    std::vector<std::string> formulas = {
-        "[p1] >= ([p2]+1) * [p15]/[p7]",
-        "([p1]>=30) and ([p2]=1)",
-        "([p3]>80)",
-        "([p1] in (0 to [p4]) and ([p2]=1))",
-        "(([-2*3]) and (1<2))",
-        "{([p5] div 30)+1}",
-        "[1..64]",
-        "[p2] to [p8]",
-        "[1..49;51..98;100]",
-        ""
+    struct TestCase {
+        std::string formula;
+        double expected;
     };
-    for (const auto& f : formulas) {
-        run_test(f);
+    std::vector<TestCase> tests = {
+        {"1+2", 3.0},
+        {"2*3+4", 10.0},
+        {"2+3*4", 14.0},
+        {"(2+3)*4", 20.0},
+        {"10-2*3", 4.0},
+        {"10/(2+3)", 2.0},
+        {"neg(5)+2", -3.0},
+        {"2*neg(3)", -6.0},
+        {"2.5+1.5", 4.0},
+        {"6/4", 1.5},
+        {"(1+2)*(3+4)", 21.0},
+    };
+    int passed = 0;
+
+    for (const auto& test : tests) {
+        auto parseResult = parse_formula(test.formula);
+        if (parseResult.index() == 1) {
+            std::cout << "Parse error for '" << test.formula << "': " << std::get<1>(parseResult) << std::endl;
+            continue;
+        }
+        const EvaluationModel& model = std::get<0>(parseResult);
+        Context ctx;
+        auto evalResult = eval_formula(model, ctx);
+        if (evalResult.index() == 1) {
+            std::cout << "Eval error for '" << test.formula << "': " << std::get<1>(evalResult) << std::endl;
+            continue;
+        }
+        const Value& v = std::get<0>(evalResult);
+        double actual = (v.type == Value::Type::Int) ? v.intValue : v.floatValue;
+        if (std::abs(actual - test.expected) < 0.001) {
+            ++passed;
+        } else {
+            std::cout << "Test failed for '" << test.formula << "': expected " << test.expected << ", got " << actual << std::endl;
+        }
     }
-    return 0;
+    std::cout << passed << "/" << tests.size() << " tests passed." << std::endl;
+    return (passed == tests.size()) ? 0 : 1;
 }

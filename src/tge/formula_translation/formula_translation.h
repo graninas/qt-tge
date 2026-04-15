@@ -2,39 +2,12 @@
 #pragma once
 #include <string>
 #include <variant>
-#include <optional>
+#include "translator.h"
 
 namespace tge::formula_translation {
 
-// Forward declaration
-struct EvaluationModel;
-struct Context;
-struct Value;
-
-// Dummy/initial parse method: returns either EvaluationModel or error string
-std::variant<EvaluationModel, std::string> parse_formula(const std::string& formula);
-
-// Dummy/initial eval method: returns either Value or error string
-std::variant<Value, std::string> eval_formula(const EvaluationModel& model, const Context& ctx);
-
-// Context structure (empty for now)
-struct Context {
-    // In the future: parameters, variables, etc.
-};
-
-// Value structure (can be extended later)
-struct Value {
-    enum class Type { Int, Float, Bool, Error };
-    Type type;
-    int intValue = 0;
-    double floatValue = 0.0;
-    bool boolValue = false;
-    // For now, only one value is valid depending on type
-};
-
-// EvaluationModel structure (dummy for now)
-struct EvaluationModel {
-    std::string original;
-};
+// API for parsing and evaluating formulas
+std::variant<tge::formula_translation::EvaluationModel, std::string> parse_formula(const std::string &formula);
+std::variant<tge::formula_translation::Value, std::string> eval_formula(const tge::formula_translation::EvaluationModel &model, const tge::formula_translation::Context &ctx);
 
 } // namespace tge::formula_translation

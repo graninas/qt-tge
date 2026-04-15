@@ -64,3 +64,15 @@ add_test(NAME PlayerRuntimeTest COMMAND ${CMAKE_BINARY_DIR}/QtTGE_test_player_ru
 add_executable(QtTGE_test_player_intermediate_path tests/test_player_intermediate_path.cpp)
 target_link_libraries(QtTGE_test_player_intermediate_path Qt5::Core)
 add_test(NAME PlayerIntermediatePathTest COMMAND ${CMAKE_BINARY_DIR}/QtTGE_test_player_intermediate_path)
+
+# Add formula translation sources for tests
+set(FORMULA_TRANSLATION_SOURCES
+    src/tge/formula_translation/formula_translation.cpp
+    src/tge/formula_translation/parser_arith.cpp
+    src/tge/formula_translation/translator.cpp
+)
+
+add_executable(QtTGE_test_formula_translation tests/test_formula_translation.cpp ${FORMULA_TRANSLATION_SOURCES})
+target_link_libraries(QtTGE_test_formula_translation Qt5::Core)
+target_include_directories(QtTGE_test_formula_translation PRIVATE src/tge/formula_translation)
+add_test(NAME FormulaTranslationTest COMMAND ${CMAKE_BINARY_DIR}/QtTGE_test_formula_translation)
