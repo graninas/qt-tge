@@ -106,6 +106,54 @@ EvalResult eval_ast(const ASTNode &node)
         }
         return result;
     }
+    else if (std::holds_alternative<ASTCompareOp>(node.node))
+    {
+        const auto &cmp = std::get<ASTCompareOp>(node.node);
+        auto lres = eval_ast(*cmp.left);
+        auto rres = eval_ast(*cmp.right);
+        if (std::holds_alternative<std::vector<std::string>>(lres))
+            return lres;
+        if (std::holds_alternative<std::vector<std::string>>(rres))
+            return rres;
+        const Value &lv = std::get<Value>(lres);
+        const Value &rv = std::get<Value>(rres);
+        double lval = (lv.type == Value::Type::Int) ? lv.intValue : lv.floatValue;
+        double rval = (rv.type == Value::Type::Int) ? rv.intValue : rv.floatValue;
+        bool result = false;
+        switch (cmp.op) {
+            case ASTCompareOp::Op::Eq: result = (lval == rval); break;
+            case ASTCompareOp::Op::Neq: result = (lval != rval); break;
+            case ASTCompareOp::Op::Lt: result = (lval < rval); break;
+            case ASTCompareOp::Op::Gt: result = (lval > rval); break;
+            case ASTCompareOp::Op::Le: result = (lval <= rval); break;
+            case ASTCompareOp::Op::Ge: result = (lval >= rval); break;
+        }
+        Value v;
+        v.type = Value::Type::Int;
+        v.intValue = result ? 1 : 0;
+        return v;
+    }
+    else if (std::holds_alternative<ASTLogicalOp>(node.node))
+    {
+        const auto &log = std::get<ASTLogicalOp>(node.node);
+        auto lres = eval_ast(*log.left);
+        auto rres = eval_ast(*log.right);
+        if (std::holds_alternative<std::vector<std::string>>(lres))
+            return lres;
+        if (std::holds_alternative<std::vector<std::string>>(rres))
+            return rres;
+        const Value &lv = std::get<Value>(lres);
+        const Value &rv = std::get<Value>(rres);
+        int lval = (lv.type == Value::Type::Int) ? lv.intValue : (lv.type == Value::Type::Float ? (lv.floatValue != 0.0) : 0);
+        int rval = (rv.type == Value::Type::Int) ? rv.intValue : (rv.type == Value::Type::Float ? (rv.floatValue != 0.0) : 0);
+        Value v;
+        v.type = Value::Type::Int;
+        switch (log.op) {
+            case ASTLogicalOp::Op::And: v.intValue = (lval && rval) ? 1 : 0; break;
+            case ASTLogicalOp::Op::Or: v.intValue = (lval || rval) ? 1 : 0; break;
+        }
+        return v;
+    }
     else if (std::holds_alternative<ASTError>(node.node))
     {
         return std::get<ASTError>(node.node).messages;

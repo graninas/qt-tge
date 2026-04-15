@@ -34,8 +34,22 @@ struct ASTBinaryOp {
     std::unique_ptr<struct ASTNode> right;
 };
 
+struct ASTCompareOp {
+    enum class Op { Eq, Neq, Lt, Gt, Le, Ge };
+    Op op;
+    std::unique_ptr<struct ASTNode> left;
+    std::unique_ptr<struct ASTNode> right;
+};
+
+struct ASTLogicalOp {
+    enum class Op { And, Or };
+    Op op;
+    std::unique_ptr<struct ASTNode> left;
+    std::unique_ptr<struct ASTNode> right;
+};
+
 struct ASTNode {
-    std::variant<ASTLiteral, ASTBinaryOp, ASTError> node;
+    std::variant<ASTLiteral, ASTBinaryOp, ASTCompareOp, ASTLogicalOp, ASTError> node;
 };
 
 struct EvaluationModel {

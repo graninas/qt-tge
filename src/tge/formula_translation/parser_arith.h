@@ -1,4 +1,5 @@
 #pragma once
+#include "translator.h"
 #include <string>
 #include <memory>
 
@@ -7,7 +8,12 @@ namespace tge::formula_translation {
 // Tokenizer for arithmetic expressions
 class Tokenizer {
 public:
-    enum class TokenType { Number, Plus, Minus, Mul, Div, LParen, RParen, End, Invalid };
+    enum class TokenType {
+        Number, Plus, Minus, Mul, Div,
+        LParen, RParen, End, Invalid,
+        Eq, Neq, Lt, Gt, Le, Ge, // Comparison
+        And, Or // Logical
+    };
     struct Token {
         TokenType type;
         double value = 0.0;
