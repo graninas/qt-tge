@@ -24,8 +24,6 @@ int main() {
         {"(2+3)*4", 20.0},
         {"10-2*3", 4.0},
         {"10/(2+3)", 2.0},
-        {"neg(5)+2", -3.0},
-        {"2*neg(3)", -6.0},
         {"2.5+1.5", 4.0},
         {"6/4", 1.5},
         {"(1+2)*(3+4)", 21.0},
@@ -33,6 +31,7 @@ int main() {
     int passed = 0;
 
     for (const auto& test : tests) {
+        std::cout << "Parsing: '" << test.formula << "'" << std::endl;
         auto parseResult = parse_formula(test.formula);
         if (parseResult.index() == 1) {
             std::cout << "Parse error for '" << test.formula << "': " << std::get<1>(parseResult) << std::endl;

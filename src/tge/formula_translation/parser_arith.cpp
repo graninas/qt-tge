@@ -56,9 +56,9 @@ void Tokenizer::next() {
             std::string word = input_.substr(start, pos_ - start);
             if (word == "and") { current_ = {TokenType::And}; return; }
             if (word == "or") { current_ = {TokenType::Or}; return; }
-            // For function names like neg, leave as Invalid for parse_factor to handle
+            // For function names like neg, do not advance pos_ or set Invalid here; let parse_factor handle
             pos_ = start;
-            current_ = {TokenType::Invalid}; ++pos_;
+            current_ = {TokenType::Invalid};
             return;
         }
         default: current_ = {TokenType::Invalid}; ++pos_; break;
@@ -78,10 +78,25 @@ void Tokenizer::next() {
 std::unique_ptr<ASTNODE> parse_logical(Tokenizer& tz);
 std::unique_ptr<ASTNODE> parse_comparison(Tokenizer& tz);
 std::unique_ptr<ASTNODE> parse_term(Tokenizer& tz);
+std::unique_ptr<ASTNODE> parse_arith(Tokenizer& tz);
 
-// expr = logical
+// expr = arith
 std::unique_ptr<ASTNODE> parse_expr(Tokenizer& tz) {
-    return parse_logical(tz);
+    return parse_arith(tz);
+}
+
+// arith = term { (+|-) term }
+std::unique_ptr<ASTNODE> parse_arith(Tokenizer& tz) {
+    auto left = parse_term(tz);
+    while (tz.current().type == Tokenizer::TokenType::Plus || tz.current().type == Tokenizer::TokenType::Minus) {
+        ASTBinaryOp::Op op = (tz.current().type == Tokenizer::TokenType::Plus) ? ASTBinaryOp::Op::Add : ASTBinaryOp::Op::Sub;
+        tz.next();
+        auto right = parse_term(tz);
+        auto node = std::make_unique<ASTNODE>();
+        node->node = ASTBinaryOp{op, std::move(left), std::move(right)};
+        left = std::move(node);
+    }
+    return left;
 }
 
 // logical = comparison { (and|or) comparison }

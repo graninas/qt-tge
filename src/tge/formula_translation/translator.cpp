@@ -2,6 +2,7 @@
 #include "parser_arith.h"
 #include <cmath>
 #include <memory>
+#include <iostream> // Include iostream for debug output
 
 namespace tge::formula_translation {
 
@@ -10,14 +11,19 @@ static double round3(double x) { return std::round(x * 1000.0) / 1000.0; }
 
 std::variant<EvaluationModel, std::string> parse_formula_impl(const std::string &formula)
 {
+    std::cout << "[DEBUG] Input formula: '" << formula << "'" << std::endl;
     Tokenizer tz(formula);
+    std::cout << "[DEBUG] Initial token type: " << static_cast<int>(tz.current().type) << ", value: " << tz.current().value << std::endl;
     auto ast = parse_expr(tz);
+    std::cout << "[DEBUG] After parse_expr, token type: " << static_cast<int>(tz.current().type) << ", pos: " << tz.pos() << std::endl;
     if (tz.current().type != Tokenizer::TokenType::End)
     {
+        std::cout << "[DEBUG] Not at end: token type: " << static_cast<int>(tz.current().type) << ", pos: " << tz.pos() << std::endl;
         return std::string{"Unexpected input after end of expression"};
     }
     if (std::holds_alternative<ASTError>(ast->node))
     {
+        std::cout << "[DEBUG] ASTError encountered" << std::endl;
         return std::get<ASTError>(ast->node).messages.front();
     }
     EvaluationModel model;
