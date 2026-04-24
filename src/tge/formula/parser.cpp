@@ -1,11 +1,257 @@
 #include "parser.h"
+
 #include <stdexcept>
 #include <cctype>
 #include <string>
 #include <sstream>
+#include <variant>
+#include <iostream>
+#include <vector>
+#include <map>
+#include <list>
+#include <tuple>
+#include <functional>
+#include <algorithm>
+
+#include "ps/free_parsec.h"
 
 namespace tge {
 namespace formula {
+
+
+
+
+// Define the Abstract Syntax Tree (AST) for the custom language
+struct ASTNode
+{
+  enum class Type
+  {
+    Parameter,
+    Operator,
+    Number
+  };
+
+  Type type;
+  std::string value; // For parameters and operators
+  int number;        // For numeric values
+
+  std::shared_ptr<ASTNode> left;  // Left child (for binary operators)
+  std::shared_ptr<ASTNode> right; // Right child (for binary operators)
+
+  ASTNode(Type t, const std::string &val) : type(t), value(val), number(0) {}
+  ASTNode(Type t, int num) : type(t), number(num) {}
+};
+
+ps::Parser<std::string> parameterIdentifier()
+{
+  using namespace ps;
+  Parser<char> firstChar = alt(upper, lower);
+  Parser<std::list<char>> restChars = many(alphanum);
+  auto seqp = sequence(firstChar, restChars);
+  return merge(seqp);
+}
+
+// Parser for the custom language
+
+ps::Parser<std::shared_ptr<ASTNode>> expressionParser();
+
+ps::Parser<std::shared_ptr<ASTNode>> parensParser()
+{
+  using namespace ps;
+
+  Parser<std::shared_ptr<ASTNode>> parser =
+      between(
+          parseChar('('),
+          expressionParser(),
+          parseChar(')')) +
+      "parens";
+
+  return parser;
+}
+
+ps::Parser<std::shared_ptr<ASTNode>> parameterParser()
+{
+  using namespace ps;
+  return fmap<std::string, std::shared_ptr<ASTNode>>(
+      [](const std::string &param)
+      {
+        return std::make_shared<ASTNode>(ASTNode::Type::Parameter, param);
+      },
+      between(parseChar('['), parameterIdentifier(), parseChar(']')))
+      + "param";
+}
+
+ps::Parser<std::shared_ptr<ASTNode>> numberParser()
+{
+  using namespace ps;
+  return fmap<int, std::shared_ptr<ASTNode>>(
+      [](int num)
+      {
+        return std::make_shared<ASTNode>(ASTNode::Type::Number, num);
+      },
+      mergeTo<int>(many1(digit)))
+      + "number";
+}
+
+ps::Parser<std::shared_ptr<ASTNode>> termParser()
+{
+  using namespace ps;
+  return alt(try_(numberParser()),
+             alt(try_(parameterParser()), parensParser()));
+}
+
+ps::Parser<std::shared_ptr<ASTNode>> operatorParser()
+{
+  using namespace ps;
+  return fmap<std::string, std::shared_ptr<ASTNode>>(
+      [](const std::string &op)
+      {
+        return std::make_shared<ASTNode>(ASTNode::Type::Operator, op);
+      },
+      choice(parseLit(">=") + "ge",
+            parseLit("+") + "add",
+            parseLit("-") + "sub",
+            parseLit("*") + "mul",
+            parseLit("/") + "div"))
+      + "op";
+}
+
+ps::Parser<std::shared_ptr<ASTNode>> operatorExprParser()
+{
+  using namespace ps;
+
+  auto seqp = sequence(
+      skip(parseChar('(')),
+      expressionParser(),
+      operatorParser(),
+      expressionParser(),
+      skip(parseChar(')')))
+      + "operator expr";
+
+  Parser<std::shared_ptr<ASTNode>> mappedSeqp = fmap<
+      std::tuple<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>,
+      std::shared_ptr<ASTNode>>(
+      [](const std::tuple<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>> &t)
+      {
+        auto left = std::get<0>(t);
+        auto op = std::get<1>(t);
+        auto right = std::get<2>(t);
+
+        // Set the left and right children of the operator node
+        op->left = left;
+        op->right = right;
+
+        return op;
+      },
+      seqp);
+  return mappedSeqp;
+}
+
+
+
+ps::Parser<std::shared_ptr<ASTNode>> expressionParser()
+{
+  using namespace ps;
+
+  // Define the parser lazily to handle recursion
+  return lazy<std::shared_ptr<ASTNode>>(
+    [](){
+      return
+          alt(
+            try_(operatorExprParser()),
+            termParser()
+          );
+    });
+}
+
+// Evaluate the AST using the parameter map
+int evaluateAST(const std::shared_ptr<ASTNode> &node, const std::map<std::string, int> &params)
+{
+  if (!node)
+  {
+    throw std::runtime_error("Invalid AST node");
+  }
+
+  switch (node->type)
+  {
+  case ASTNode::Type::Parameter:
+  {
+    auto it = params.find(node->value);
+    if (it == params.end())
+    {
+      throw std::runtime_error("Undefined parameter: " + node->value);
+    }
+    return it->second;
+  }
+  case ASTNode::Type::Number:
+    return node->number;
+  case ASTNode::Type::Operator:
+  {
+    int leftValue = evaluateAST(node->left, params);
+    int rightValue = evaluateAST(node->right, params);
+
+    if (node->value == ">=")
+    {
+      return leftValue >= rightValue;
+    }
+    else if (node->value == "+")
+    {
+      return leftValue + rightValue;
+    }
+    else if (node->value == "-")
+    {
+      return leftValue - rightValue;
+    }
+    else if (node->value == "*")
+    {
+      return leftValue * rightValue;
+    }
+    else if (node->value == "/")
+    {
+      if (rightValue == 0)
+      {
+        throw std::runtime_error("Division by zero");
+      }
+      return leftValue / rightValue;
+    }
+    else
+    {
+      throw std::runtime_error("Unknown operator: " + node->value);
+    }
+  }
+  default:
+    throw std::runtime_error("Unknown AST node type");
+  }
+}
+
+int parseAndEvaluateExpression(const std::string &src, const std::map<std::string, int> &params)
+{
+  using namespace ps;
+
+  ParserRuntime runtime(src, State{});
+  Parser<std::shared_ptr<ASTNode>> parser = expressionParser();
+
+  ParserResult<std::shared_ptr<ASTNode>> result = parseWithRuntime(runtime, parser);
+
+  if (!isRight(result)) {
+    // Get error info if available
+    throw std::runtime_error("Parse error");
+  }
+
+  std::shared_ptr<ASTNode> ast = getParseSucceeded(result).parsed;
+  return evaluateAST(ast, params);
+}
+
+
+
+
+
+
+
+
+
+
+
 
 } // namespace formula
 } // namespace tge
