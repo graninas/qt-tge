@@ -108,15 +108,21 @@ ps::Parser<std::shared_ptr<ASTNode>> operatorParser()
       {
         return std::make_shared<ASTNode>(ASTNode::Type::Operator, op);
       },
+      // longer operators first
       choice(parseLit(">=") + "ge",
-            parseLit("+") + "add",
-            parseLit("-") + "sub",
-            parseLit("*") + "mul",
-            parseLit("/") + "div"))
+             parseLit("<=") + "le",
+             parseLit("==") + "eq",
+             parseLit("!=") + "ne",
+             parseLit(">") + "gt",
+             parseLit("<") + "lt",
+             parseLit("+") + "add",
+             parseLit("-") + "sub",
+             parseLit("*") + "mul",
+             parseLit("/") + "div"))
       + "op";
 }
 
-ps::Parser<std::shared_ptr<ASTNode>> operatorExprParser()
+ps::Parser<std::shared_ptr<ASTNode>> operatorParensExprParser()
 {
   using namespace ps;
 
@@ -155,13 +161,12 @@ ps::Parser<std::shared_ptr<ASTNode>> expressionParser()
 
   // Define the parser lazily to handle recursion
   return lazy<std::shared_ptr<ASTNode>>(
-    [](){
-      return
-          alt(
-            try_(operatorExprParser()),
-            termParser()
-          );
-    });
+      []()
+      {
+        return alt(
+            try_(operatorParensExprParser()),
+            termParser());
+      });
 }
 
 // Evaluate the AST using the parameter map
@@ -192,7 +197,27 @@ int evaluateAST(const std::shared_ptr<ASTNode> &node, const std::map<std::string
 
     if (node->value == ">=")
     {
-      return leftValue >= rightValue;
+      return (leftValue >= rightValue) ? 1 : 0; // Return 1 for true, 0 for false
+    }
+    else if (node->value == "<=")
+    {
+      return (leftValue <= rightValue) ? 1 : 0; // Return 1 for true, 0 for false
+    }
+    else if (node->value == ">")
+    {
+      return (leftValue > rightValue) ? 1 : 0; // Return 1 for true, 0 for false
+    }
+    else if (node->value == "<")
+    {
+      return (leftValue < rightValue) ? 1 : 0; // Return 1 for true, 0 for false
+    }
+    else if (node->value == "==")
+    {
+      return (leftValue == rightValue) ? 1 : 0; // Return 1 for true, 0 for false
+    }
+    else if (node->value == "!=")
+    {
+      return (leftValue != rightValue) ? 1 : 0; // Return 1 for true, 0 for false
     }
     else if (node->value == "+")
     {
@@ -228,7 +253,9 @@ int parseAndEvaluateExpression(const std::string &src, const std::map<std::strin
 {
   using namespace ps;
 
-  ParserRuntime runtime(src, State{});
+  const std::string input = "(" + src + ")"; // Wrap the input in parentheses to ensure it matches the operator expression format
+
+  ParserRuntime runtime(input, State{});
   Parser<std::shared_ptr<ASTNode>> parser = expressionParser();
 
   ParserResult<std::shared_ptr<ASTNode>> result = parseWithRuntime(runtime, parser);
