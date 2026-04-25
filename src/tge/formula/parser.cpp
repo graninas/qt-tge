@@ -12,14 +12,12 @@
 #include <tuple>
 #include <functional>
 #include <algorithm>
+#include <random>
 
 #include "ps/free_parsec.h"
 
 namespace tge {
 namespace formula {
-
-
-
 
 // Define the Abstract Syntax Tree (AST) for the custom language
 struct ASTNode
@@ -93,11 +91,52 @@ ps::Parser<std::shared_ptr<ASTNode>> numberParser()
       + "number";
 }
 
+ps::Parser<std::shared_ptr<ASTNode>> negParser()
+{
+  using namespace ps;
+  // Parses neg(expr) and returns a unary negation node
+  return fmap<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>(
+      [](const std::shared_ptr<ASTNode> &operand)
+      {
+        auto node = std::make_shared<ASTNode>(ASTNode::Type::Operator, "neg");
+        node->left = operand;
+        return node;
+      },
+      between(parseLit("neg("), expressionParser(), parseChar(')')))
+      + "neg";
+}
+
+ps::Parser<std::shared_ptr<ASTNode>> rndParser()
+{
+  using namespace ps;
+  // Parses rnd(from, toExcluding)
+  auto seqp = sequence(
+      skip(parseLit("rnd(")),
+      expressionParser(),
+      skip(parseChar(',')),
+      expressionParser(),
+      skip(parseChar(')')));
+
+  return fmap<
+      std::tuple<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>,
+      std::shared_ptr<ASTNode>>(
+      [](const std::tuple<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>> &t)
+      {
+        auto node = std::make_shared<ASTNode>(ASTNode::Type::Operator, "rnd");
+        node->left = std::get<0>(t);
+        node->right = std::get<1>(t);
+        return node;
+      },
+      seqp) + "rnd";
+}
+
 ps::Parser<std::shared_ptr<ASTNode>> termParser()
 {
   using namespace ps;
-  return alt(try_(numberParser()),
-             alt(try_(parameterParser()), parensParser()));
+  return alt(try_(negParser()),
+             alt(try_(rndParser()),
+                 alt(try_(numberParser()),
+                     alt(try_(parameterParser()), parensParser()))));
 }
 
 ps::Parser<std::shared_ptr<ASTNode>> operatorParser()
@@ -108,17 +147,25 @@ ps::Parser<std::shared_ptr<ASTNode>> operatorParser()
       {
         return std::make_shared<ASTNode>(ASTNode::Type::Operator, op);
       },
-      // longer operators first
+      // longer operators first to avoid prefix conflicts
       choice(parseLit(">=") + "ge",
              parseLit("<=") + "le",
              parseLit("==") + "eq",
              parseLit("!=") + "ne",
+            //  parseLit("<>") + "ne2",
              parseLit(">") + "gt",
              parseLit("<") + "lt",
+            //  parseLit("=") + "eq2",
              parseLit("+") + "add",
              parseLit("-") + "sub",
              parseLit("*") + "mul",
-             parseLit("/") + "div"))
+             parseLit("/") + "divop",
+             parseLit("div") + "div",
+             parseLit("mod") + "mod",
+             parseLit("and") + "and",
+             parseLit("or") + "or",
+             parseLit("to") + "to",
+             parseLit("in") + "in"))
       + "op";
 }
 
@@ -192,6 +239,41 @@ int evaluateAST(const std::shared_ptr<ASTNode> &node, const std::map<std::string
     return node->number;
   case ASTNode::Type::Operator:
   {
+    // Handle unary operators first (no right child)
+    if (node->value == "neg")
+    {
+      int operand = evaluateAST(node->left, params);
+      return -operand;
+    }
+
+    // rnd(from, toExcluding) — random integer in [from, toExcluding)
+    if (node->value == "rnd")
+    {
+      int from = evaluateAST(node->left, params);
+      int toExcluding = evaluateAST(node->right, params);
+      if (toExcluding <= from)
+      {
+        throw std::runtime_error("rnd: toExcluding must be greater than from");
+      }
+      static std::mt19937 rng(std::random_device{}());
+      std::uniform_int_distribution<int> dist(from, toExcluding - 1);
+      return dist(rng);
+    }
+
+    // For 'in', evaluate left normally but right is a range node - handle specially
+    if (node->value == "in")
+    {
+      if (!node->right || node->right->value != "to")
+      {
+        throw std::runtime_error("'in' operator requires a 'to' range on the right");
+      }
+      int val = evaluateAST(node->left, params);
+      int rangeStart = evaluateAST(node->right->left, params);
+      int rangeEnd = evaluateAST(node->right->right, params);
+      return (val >= rangeStart && val <= rangeEnd) ? 1 : 0;
+    }
+
+    // Binary operators: evaluate both sides
     int leftValue = evaluateAST(node->left, params);
     int rightValue = evaluateAST(node->right, params);
 
@@ -239,6 +321,43 @@ int evaluateAST(const std::shared_ptr<ASTNode> &node, const std::map<std::string
       }
       return leftValue / rightValue;
     }
+    else if (node->value == "div")
+    {
+      if (rightValue == 0)
+      {
+        throw std::runtime_error("Division by zero");
+      }
+      return leftValue / rightValue;
+    }
+    else if (node->value == "mod")
+    {
+      if (rightValue == 0)
+      {
+        throw std::runtime_error("Division by zero");
+      }
+      return leftValue % rightValue;
+    }
+    else if (node->value == "and")
+    {
+      return (leftValue != 0 && rightValue != 0) ? 1 : 0;
+    }
+    else if (node->value == "or")
+    {
+      return (leftValue != 0 || rightValue != 0) ? 1 : 0;
+    }
+    else if (node->value == "<>")
+    {
+      return (leftValue != rightValue) ? 1 : 0;
+    }
+    else if (node->value == "=")
+    {
+      return (leftValue == rightValue) ? 1 : 0;
+    }
+    else if (node->value == "to")
+    {
+      // 'to' is only valid as the right child of 'in'; standalone is an error
+      throw std::runtime_error("'to' operator used outside of 'in' context");
+    }
     else
     {
       throw std::runtime_error("Unknown operator: " + node->value);
@@ -275,17 +394,6 @@ int parseAndEvaluateExpression(const std::string &src, const std::map<std::strin
   std::shared_ptr<ASTNode> ast = getParseSucceeded(result).parsed;
   return evaluateAST(ast, params);
 }
-
-
-
-
-
-
-
-
-
-
-
 
 } // namespace formula
 } // namespace tge

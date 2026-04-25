@@ -18,6 +18,7 @@ This document outlines the requirements and design considerations for the formul
 - **Logical:** `and`, `or`
 - **Range and set:** `to`, `in`
 - **Parentheses** for grouping and precedence
+- **Random:** `rnd(from, toExcluding)`
 
 ## 3. Operands
 - Numeric constants (integers, floats)
