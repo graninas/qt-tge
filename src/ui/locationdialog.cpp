@@ -24,27 +24,38 @@ LocationDialog::LocationDialog(tge::domain::LocationDef* loc, Manager* manager, 
     setWindowTitle(tr("Location Info"));
     setMinimumWidth(600); // Make dialog twice as wide (adjust as needed)
 
-    QHBoxLayout* mainLayout = new QHBoxLayout(this);
+    QVBoxLayout* outerLayout = new QVBoxLayout(this);
+    QHBoxLayout* mainLayout = new QHBoxLayout();
+    outerLayout->addLayout(mainLayout);
     QVBoxLayout* leftLayout = new QVBoxLayout();
     QVBoxLayout* rightLayout = new QVBoxLayout();
     mainLayout->addLayout(leftLayout, 3); // main fields wider
     mainLayout->addLayout(rightLayout, 2); // edges area
 
-    // Color palette UI
-    setupColorPaletteUI(leftLayout);
-
     // ID and coords (read-only)
-    QString idType = QString("%1 (%2): (%3,%4)").arg(loc->id).arg(static_cast<int>(loc->type)).arg(loc->coordX).arg(loc->coordY);
+    auto locationTypeToString = [](tge::domain::LocationType t) -> QString {
+        switch (t) {
+        case tge::domain::LocationType::Start:   return QStringLiteral("Start");
+        case tge::domain::LocationType::Regular: return QStringLiteral("Regular");
+        case tge::domain::LocationType::Service: return QStringLiteral("Service");
+        case tge::domain::LocationType::Finish:  return QStringLiteral("Finish");
+        }
+        return QStringLiteral("Unknown");
+    };
+    QString idType = QString("Loc id: %1 (%2): (%3,%4)").arg(loc->id)
+      .arg(locationTypeToString(loc->type))
+      .arg(loc->coordX).arg(loc->coordY);
     QLabel* idLabel = new QLabel(idType, this);
     leftLayout->addWidget(idLabel);
 
+    // Color palette UI
+    setupColorPaletteUI(leftLayout);
+
     // Label
-    leftLayout->addWidget(new QLabel(tr("Label:"), this));
     m_labelEdit = new QLineEdit(loc->label, this);
     leftLayout->addWidget(m_labelEdit);
 
     // Description tabs
-    leftLayout->addWidget(new QLabel(tr("Descriptions:"), this));
     QHBoxLayout* descBtnLayout = new QHBoxLayout;
     m_addDescBtn = new QPushButton("+", this);
     m_removeDescBtn = new QPushButton("-", this);
@@ -72,11 +83,11 @@ LocationDialog::LocationDialog(tge::domain::LocationDef* loc, Manager* manager, 
     populateEdgeList();
     connect(m_edgeListWidget, &QListWidget::itemClicked, this, &LocationDialog::onEdgeItemClicked);
 
-    // Buttons (span both columns)
+    // Buttons (below all content)
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
     connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
     connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    mainLayout->addWidget(buttons, 0, Qt::AlignBottom);
+    outerLayout->addWidget(buttons);
 }
 
 QString LocationDialog::label() const {
@@ -161,8 +172,6 @@ void LocationDialog::onEdgeItemClicked(QListWidgetItem* item) {
 }
 
 void LocationDialog::setupColorPaletteUI(QVBoxLayout* layout) {
-    QLabel* colorLabel = new QLabel(tr("Color:"), this);
-    layout->addWidget(colorLabel);
     QGridLayout* grid = new QGridLayout();
     m_colorButtonGroup = new QButtonGroup(this);
     m_colorButtonGroup->setExclusive(true);
