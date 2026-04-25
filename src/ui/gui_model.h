@@ -11,8 +11,9 @@
 struct AppearanceSettings {
     int idOffsetY;
     int labelOffsetY;
-    AppearanceSettings(int idOffsetY_ = -46, int labelOffsetY_ = 32)
-        : idOffsetY(idOffsetY_), labelOffsetY(labelOffsetY_) {}
+    int customColorRingWidth;
+    AppearanceSettings(int idOffsetY_ = -46, int labelOffsetY_ = 32, int customColorRingWidth_ = 7)
+        : idOffsetY(idOffsetY_), labelOffsetY(labelOffsetY_), customColorRingWidth(customColorRingWidth_) {}
 };
 
 

@@ -17,7 +17,7 @@ extern const QColor LOCATION_COLOR_PALETTE[LOCATION_COLOR_COUNT];
 void drawGrid(QPainter *painter, const QRectF &rect, const SceneModel* sceneModel);
 
 // Draw all locations using SceneModel for coordinate transformations
-void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int hoveredLocationId = -1);
+void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int customColorRingWidth, int hoveredLocationId = -1);
 void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, const QPoint& pos, const QString& typeStr, const QString& desc);
 
 // Draw all edges using SceneModel for coordinate transformations

@@ -222,8 +222,15 @@ void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneM
     }
 }
 
-void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int hoveredLocationId) {
+void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int customColorRingWidth, int hoveredLocationId) {
     if (!sceneModel) return;
+
+    const double outerRingRadius = 14.0;
+    const double innerCircleRadius = 10.0;
+    const double defaultRingWidth = 2.0;
+    const double hoverPenWidth = 2.0;
+    const double hoverGap = 2.0;
+    const double effectiveCustomRingWidth = std::max(1, customColorRingWidth);
 
     for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
         const auto& loc = it.value();
@@ -231,13 +238,15 @@ void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sc
         QPointF pos = sceneModel->sceneToCanvas(QPointF(loc.coordX, loc.coordY));
 
         // Draw color circle if color is set
+        double ringWidth = defaultRingWidth;
         if (loc.color >= 0 && loc.color < LOCATION_COLOR_COUNT) {
-            painter->setPen(QPen(LOCATION_COLOR_PALETTE[loc.color], 4));
+            ringWidth = effectiveCustomRingWidth;
+            painter->setPen(QPen(LOCATION_COLOR_PALETTE[loc.color], ringWidth));
         } else {
-            painter->setPen(QPen(Qt::lightGray, 2));
+            painter->setPen(QPen(Qt::lightGray, ringWidth));
         }
         painter->setBrush(Qt::NoBrush);
-        painter->drawEllipse(pos, 14, 14);
+        painter->drawEllipse(pos, outerRingRadius, outerRingRadius);
         // Fill color by type
         QColor fillColor;
         switch (loc.type) {
@@ -248,13 +257,15 @@ void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sc
         }
         painter->setPen(QPen(Qt::black, 2));
         painter->setBrush(QBrush(fillColor));
-        painter->drawEllipse(pos, 10, 10);
+        painter->drawEllipse(pos, innerCircleRadius, innerCircleRadius);
         // Draw hover effect
         if (hoveredLocationId == loc.id) {
-            QPen hoverPen(Qt::darkGreen, 2, Qt::DashLine);
+            QPen hoverPen(Qt::darkGreen, hoverPenWidth, Qt::DashLine);
             painter->setPen(hoverPen);
             painter->setBrush(Qt::NoBrush);
-            painter->drawEllipse(pos, 18, 18);
+            const double outerRingOuterRadius = outerRingRadius + ringWidth / 2.0;
+            const double hoverRadius = outerRingOuterRadius + hoverGap + hoverPenWidth / 2.0;
+            painter->drawEllipse(pos, hoverRadius, hoverRadius);
         }
         // Draw id above
         painter->setPen(Qt::black);

@@ -263,6 +263,7 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
         graphwidget_helpers::drawLocations(painter, model, &model->sceneModel,
                                            appearanceSettings.idOffsetY,
                                            appearanceSettings.labelOffsetY,
+                                           appearanceSettings.customColorRingWidth,
                                            hoveredLocationId);
         // Draw memo on top if hovering
         auto locIt = model->gameDef.locations.find(hoveredLocationId);
