@@ -61,15 +61,9 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
     QVBoxLayout* layout = new QVBoxLayout(this);
 
     m_idLabel = new QLabel(tr("Edge ID: %1").arg(edge.id), this);
-    layout->addWidget(m_idLabel);
-
     m_fromLabel = new QLabel(tr("From: %1 (%2)").arg(fromLoc.id).arg(fromLoc.label), this);
-    layout->addWidget(m_fromLabel);
-
     m_toLabel = new QLabel(tr("To: %1 (%2)").arg(toLoc.id).arg(toLoc.label), this);
-    layout->addWidget(m_toLabel);
 
-    layout->addWidget(new QLabel(tr("Color:"), this));
     QGridLayout* colorGrid = new QGridLayout();
     m_colorButtonGroup = new QButtonGroup(this);
     m_colorButtonGroup->setExclusive(true);
@@ -89,30 +83,49 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
         m_colorButtons.append(btn);
         colorGrid->addWidget(btn, i / 8, i % 8);
     }
-    layout->addLayout(colorGrid);
+
+    {
+        QHBoxLayout* infoColorRow = new QHBoxLayout();
+        QVBoxLayout* infoColumn = new QVBoxLayout();
+        infoColumn->addWidget(m_idLabel);
+        infoColumn->addWidget(m_fromLabel);
+        infoColumn->addWidget(m_toLabel);
+        infoColumn->addStretch();
+        infoColorRow->addLayout(infoColumn);
+        infoColorRow->addLayout(colorGrid);
+        layout->addLayout(infoColorRow);
+    }
     connect(m_colorButtonGroup, &QButtonGroup::idClicked, this, &EdgeDialog::onColorButtonClicked);
     updateColorSelection();
 
-    layout->addWidget(new QLabel(tr("Option Text:"), this));
-    m_optionEdit = new QTextEdit(edge.optionText, this);
-    m_optionEdit->setMaximumHeight(50);
-    layout->addWidget(m_optionEdit);
+    {
+        QHBoxLayout* optionRow = new QHBoxLayout();
+        optionRow->addWidget(new QLabel(tr("Option:"), this));
+        m_optionEdit = new QTextEdit(edge.optionText, this);
+        m_optionEdit->setMaximumHeight(50);
+        optionRow->addWidget(m_optionEdit);
+        layout->addLayout(optionRow);
+    }
 
     layout->addWidget(new QLabel(tr("Transition Text:"), this));
     m_transitionEdit = new QTextEdit(edge.transitionText, this);
     layout->addWidget(m_transitionEdit);
 
-    layout->addWidget(new QLabel(tr("Condition Formula:"), this));
-    m_conditionEdit = new QTextEdit(edge.condition, this);
-    m_conditionEdit->setMaximumHeight(60);
-    layout->addWidget(m_conditionEdit);
+    {
+        QHBoxLayout* conditionRow = new QHBoxLayout();
+        conditionRow->addWidget(new QLabel(tr("Condition:"), this));
+        m_conditionEdit = new QTextEdit(edge.condition, this);
+        m_conditionEdit->setMaximumHeight(60);
+        conditionRow->addWidget(m_conditionEdit);
+        layout->addLayout(conditionRow);
+    }
 
     m_conditionStatusLabel = new QLabel(this);
     layout->addWidget(m_conditionStatusLabel);
 
     QTabWidget* settingsTabs = new QTabWidget(this);
 
-    QGroupBox* variableGroup = new QGroupBox(tr("Global Variable Settings"), settingsTabs);
+    QGroupBox* variableGroup = new QGroupBox(settingsTabs);
     QHBoxLayout* variableRoot = new QHBoxLayout(variableGroup);
 
     m_variableList = new QListWidget(variableGroup);
@@ -151,7 +164,7 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
         m_variableList->setCurrentRow(0);
     }
 
-    QGroupBox* infoDisplayGroup = new QGroupBox(tr("Info Display Item Settings"), settingsTabs);
+    QGroupBox* infoDisplayGroup = new QGroupBox(settingsTabs);
     QHBoxLayout* infoDisplayRoot = new QHBoxLayout(infoDisplayGroup);
 
     m_infoDisplayItemList = new QListWidget(infoDisplayGroup);
