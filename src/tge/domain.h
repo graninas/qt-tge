@@ -75,6 +75,15 @@ struct LocationDef {
     int color = LOCATION_COLOR_NONE; // Palette index, -1 means no color
 };
 
+enum class InfoDisplayItemMode { Actual, Debug };
+
+// Game info display model (editor only)
+struct InfoDisplayItemDef {
+    QString label;
+    QString valueFormula; // Formula to compute the value to display
+    InfoDisplayItemMode mode = InfoDisplayItemMode::Actual;
+};
+
 // Game definition
 struct GameDef {
     QString name;
@@ -82,6 +91,7 @@ struct GameDef {
     QMap<int, LocationDef> locations; // id -> location
     QMap<int, EdgeDef> edges; // id -> edge
     QVector<VariableDef> globalVariables;
+    QVector<InfoDisplayItemDef> infoDisplayItems;
 };
 
 } // namespace domain

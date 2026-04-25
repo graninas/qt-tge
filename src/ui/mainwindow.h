@@ -23,12 +23,14 @@ public:
 private slots:
     void onNewLocationMode();
     void onEditGlobalVariables();
+    void onEditInfoDisplayItems();
 
 private:
     Ui::MainWindow *ui;
     GraphWidget *graphWidget; // Pointer to the graph widget
     QToolButton *newLocationButton; // Button for new location mode
     QToolButton *globalVariablesButton; // Button for global variables editor
+    QToolButton *infoDisplayItemsButton; // Button for info display items editor
     UiModel *model = nullptr;
 };
 

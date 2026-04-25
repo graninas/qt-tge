@@ -2,6 +2,7 @@
 #include "ui_mainwindow.h"
 #include "graphwidget.h"
 #include "globalvariablesdialog.h"
+#include "infodisplayitemsdialog.h"
 
 #include <QToolBar>
 #include <QToolButton>
@@ -35,6 +36,12 @@ MainWindow::MainWindow(QWidget *parent)
     globalVariablesButton->setToolTip("Edit global variable definitions");
     toolBar->addWidget(globalVariablesButton);
     connect(globalVariablesButton, &QToolButton::clicked, this, &MainWindow::onEditGlobalVariables);
+
+    infoDisplayItemsButton = new QToolButton(this);
+    infoDisplayItemsButton->setText("Info Display");
+    infoDisplayItemsButton->setToolTip("Edit game info display items");
+    toolBar->addWidget(infoDisplayItemsButton);
+    connect(infoDisplayItemsButton, &QToolButton::clicked, this, &MainWindow::onEditInfoDisplayItems);
 }
 
 void MainWindow::onNewLocationMode()
@@ -50,6 +57,18 @@ void MainWindow::onEditGlobalVariables()
     }
 
     GlobalVariablesDialog dlg(model->gameDef.globalVariables, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        graphWidget->viewport()->update();
+    }
+}
+
+void MainWindow::onEditInfoDisplayItems()
+{
+    if (!model) {
+        return;
+    }
+
+    InfoDisplayItemsDialog dlg(model->gameDef.infoDisplayItems, this);
     if (dlg.exec() == QDialog::Accepted) {
         graphWidget->viewport()->update();
     }
