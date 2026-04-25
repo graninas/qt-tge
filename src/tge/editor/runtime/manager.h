@@ -3,6 +3,8 @@
 
 #include "../types.h"
 #include "../../domain.h"
+#include <algorithm>
+#include <stdexcept>
 
 namespace tge {
 namespace editor {
@@ -72,43 +74,40 @@ public:
 
     // Delete a location by id
     void deleteLocation(int id) {
-        m_game.locations.remove(id);
-        // Optionally: remove edges pointing to/from this location
-        // Remove outgoing edges from this location
+        if (!m_game.locations.contains(id)) return;
+
         QVector<int> toRemove;
-        for (auto it = m_game.edges.begin(); it != m_game.edges.end(); ++it) {
+        for (auto it = m_game.edges.constBegin(); it != m_game.edges.constEnd(); ++it) {
             if (it.value().fromLocation == id || it.value().toLocation == id) {
                 toRemove.append(it.key());
             }
         }
         for (int edgeId : toRemove) {
-            m_game.edges.remove(edgeId);
+            deleteEdge(edgeId);
         }
+        m_game.locations.remove(id);
     }
 
     // Add an edge between two locations
-    domain::EdgeDef* addEdge(int fromId, int toId, const QString& optionText, const QString& transitionText) {
+    domain::EdgeDef* addEdge(int fromId, int toId, const QString& optionText, const QString& transitionText,
+                            const QString& condition = "") {
         clearError();
+        if (!m_game.locations.contains(fromId) || !m_game.locations.contains(toId)) {
+            m_lastError = "Source or destination location does not exist.";
+            return nullptr;
+        }
         // Prohibit self-pointing edges (except via addLoopEdge)
         if (fromId == toId) {
             m_lastError = "Self-pointing edges are not allowed. Use addLoopEdge instead.";
             return nullptr;
         }
         // Prohibit edges to the start location
-        if (m_game.locations.contains(toId) && m_game.locations[toId].type == domain::LocationType::Start) {
+        if (m_game.locations[toId].type == domain::LocationType::Start) {
             m_lastError = "Edges to the start location are not allowed.";
             return nullptr;
         }
-        // Prohibit self-edges for start and finish locations
-        if (fromId == toId && m_game.locations.contains(fromId)) {
-            auto type = m_game.locations[fromId].type;
-            if (type == domain::LocationType::Start || type == domain::LocationType::Finish) {
-                m_lastError = "Self-edges for start or finish locations are not allowed.";
-                return nullptr;
-            }
-        }
         // Prohibit outgoing edges from finish locations
-        if (m_game.locations.contains(fromId) && m_game.locations[fromId].type == domain::LocationType::Finish) {
+        if (m_game.locations[fromId].type == domain::LocationType::Finish) {
             m_lastError = "Outgoing edges from finish locations are not allowed.";
             return nullptr;
         }
@@ -118,17 +117,77 @@ public:
         edge.toLocation = toId;
         edge.optionText = optionText;
         edge.transitionText = transitionText;
+        edge.condition = condition;
         m_game.edges[edge.id] = edge;
-        // Add edge id to the location's outgoingEdges
-        if (m_game.locations.contains(fromId)) {
-            m_game.locations[fromId].outgoingEdges.append(edge.id);
+
+        auto& out = m_game.locations[fromId].outgoingEdges;
+        if (std::find(out.begin(), out.end(), edge.id) == out.end()) {
+            out.append(edge.id);
         }
+        auto& in = m_game.locations[toId].incomingEdges;
+        if (std::find(in.begin(), in.end(), edge.id) == in.end()) {
+            in.append(edge.id);
+        }
+
         return &m_game.edges[edge.id];
+      }
+
+    bool connectEdge(int fromId, int toId, int edgeId) {
+        clearError();
+        if (!m_game.edges.contains(edgeId)) {
+            m_lastError = "Edge ID does not exist.";
+            return false;
+        }
+        if (!m_game.locations.contains(fromId) || !m_game.locations.contains(toId)) {
+            m_lastError = "Source or destination location does not exist.";
+            return false;
+        }
+        if (fromId == toId) {
+            m_lastError = "Self-pointing edges are not allowed. Use addLoopEdge instead.";
+            return false;
+        }
+        if (m_game.locations[toId].type == domain::LocationType::Start) {
+            m_lastError = "Edges to the start location are not allowed.";
+            return false;
+        }
+        if (m_game.locations[fromId].type == domain::LocationType::Finish) {
+            m_lastError = "Outgoing edges from finish locations are not allowed.";
+            return false;
+        }
+
+        const int prevFrom = m_game.edges[edgeId].fromLocation;
+        const int prevTo = m_game.edges[edgeId].toLocation;
+        if (m_game.locations.contains(prevFrom)) {
+            auto& prevOut = m_game.locations[prevFrom].outgoingEdges;
+            prevOut.erase(std::remove(prevOut.begin(), prevOut.end(), edgeId), prevOut.end());
+        }
+        if (m_game.locations.contains(prevTo)) {
+            auto& prevIn = m_game.locations[prevTo].incomingEdges;
+            prevIn.erase(std::remove(prevIn.begin(), prevIn.end(), edgeId), prevIn.end());
+        }
+
+        m_game.edges[edgeId].fromLocation = fromId;
+        m_game.edges[edgeId].toLocation = toId;
+
+        // Update outgoing edges of fromId
+        auto& out = m_game.locations[fromId].outgoingEdges;
+        if (std::find(out.begin(), out.end(), edgeId) == out.end()) {
+            out.append(edgeId);
+        }
+        // Update incoming edges of toId
+        auto& in = m_game.locations[toId].incomingEdges;
+        if (std::find(in.begin(), in.end(), edgeId) == in.end()) {
+            in.append(edgeId);
+        }
+
+        return true;
     }
 
-    // Add a loop edge by creating a service location and two edges (source->service, service->source)
+    // Add a loop path by creating a nearby service location and two edges
+    // (source->service, service->source).
     // Returns the id of the new service location, or -1 on error
-    int addLoopEdge(int sourceId, const QString& optionText, const QString& transitionText) {
+    int addLoopEdge(int sourceId, const QString& optionText, const QString& transitionText,
+                    const QString& condition = "") {
         clearError();
         if (!m_game.locations.contains(sourceId)) {
             m_lastError = "Source location does not exist.";
@@ -140,26 +199,49 @@ public:
             m_lastError = "Loop edges for start or finish locations are not allowed.";
             return -1;
         }
-        // Prohibit if already a service location
-        if (src.type == domain::LocationType::Service) {
-            m_lastError = "Loop edges for service locations are not allowed.";
-            return -1;
+
+        // Place the service location near the source, preferring free adjacent cells.
+        QVector<QPair<int, int>> offsets = {
+            {1, 0}, {1, 1}, {0, 1}, {-1, 1},
+            {-1, 0}, {-1, -1}, {0, -1}, {1, -1}
+        };
+        int newX = src.coordX + 1;
+        int newY = src.coordY;
+        for (const auto& off : offsets) {
+            int candidateX = src.coordX + off.first;
+            int candidateY = src.coordY + off.second;
+            bool occupied = false;
+            for (auto it = m_game.locations.constBegin(); it != m_game.locations.constEnd(); ++it) {
+                if (it.value().coordX == candidateX && it.value().coordY == candidateY) {
+                    occupied = true;
+                    break;
+                }
+            }
+            if (!occupied) {
+                newX = candidateX;
+                newY = candidateY;
+                break;
+            }
         }
-        // Prohibit outgoing edges from finish locations (shouldn't happen, but for safety)
-        if (src.type == domain::LocationType::Finish) {
-            m_lastError = "Outgoing edges from finish locations are not allowed.";
-            return -1;
-        }
-        // Find a nearby coordinate for the service location
-        int dx = 1, dy = 0;
-        int newX = src.coordX + dx;
-        int newY = src.coordY + dy;
+
         // Create service location
         auto& serviceLoc = addServiceLocation("", tge::domain::LOCATION_COLOR_NONE, newX, newY);
+
         // Add edge source -> service
-        if (!addEdge(sourceId, serviceLoc.id, optionText, transitionText)) return -1;
-        // Add edge service -> source
-        if (!addEdge(serviceLoc.id, sourceId, optionText, transitionText)) return -1;
+        auto* forward = addEdge(sourceId, serviceLoc.id, optionText, transitionText, condition);
+        if (!forward) {
+            m_game.locations.remove(serviceLoc.id);
+            return -1;
+        }
+
+        // Add edge service -> source to complete the loop path.
+        auto* back = addEdge(serviceLoc.id, sourceId, "", "", "");
+        if (!back) {
+            deleteEdge(forward->id);
+            m_game.locations.remove(serviceLoc.id);
+            return -1;
+        }
+
         return serviceLoc.id;
     }
 
@@ -171,19 +253,40 @@ public:
             auto& out = m_game.locations[fromId].outgoingEdges;
             out.erase(std::remove(out.begin(), out.end(), edgeId), out.end());
         }
+        int toId = m_game.edges[edgeId].toLocation;
+        if (m_game.locations.contains(toId)) {
+            auto& in = m_game.locations[toId].incomingEdges;
+            in.erase(std::remove(in.begin(), in.end(), edgeId), in.end());
+        }
         m_game.edges.remove(edgeId);
     }
 
     // --- Static helpers ---
     static domain::LocationDef& getLocation(int locationId, domain::GameDef& game) {
-        return game.locations[locationId];
+        auto it = game.locations.find(locationId);
+        if (it == game.locations.end()) {
+            throw std::out_of_range("Location ID not found");
+        }
+        return it.value();
     }
     static domain::EdgeDef& getEdge(int edgeId, domain::GameDef& game) {
-        return game.edges[edgeId];
+        auto it = game.edges.find(edgeId);
+        if (it == game.edges.end()) {
+            throw std::out_of_range("Edge ID not found");
+        }
+        return it.value();
     }
     static std::pair<domain::LocationDef&, domain::LocationDef&> getEdgeLocations(int edgeId, domain::GameDef& game) {
-        auto& edge = game.edges[edgeId];
-        return { game.locations[edge.fromLocation], game.locations[edge.toLocation] };
+        auto edgeIt = game.edges.find(edgeId);
+        if (edgeIt == game.edges.end()) {
+            throw std::out_of_range("Edge ID not found");
+        }
+        auto fromIt = game.locations.find(edgeIt.value().fromLocation);
+        auto toIt = game.locations.find(edgeIt.value().toLocation);
+        if (fromIt == game.locations.end() || toIt == game.locations.end()) {
+            throw std::out_of_range("Edge location ID not found");
+        }
+        return { fromIt.value(), toIt.value() };
     }
 
     domain::GameDef& game() { return m_game; }

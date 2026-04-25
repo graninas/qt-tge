@@ -17,23 +17,23 @@ using tge::domain::EdgeDef;
 
 // Dynamic variable state
 struct VariableState {
-    const VariableDef* def; // Reference to static definition
+    const VariableDef* def;
     QString value; // Current value (dummy for now)
 };
 
 // Dynamic edge state
 struct EdgeState {
-    const EdgeDef* def; // Reference to static definition
-    const struct LocationState* fromLocation = nullptr; // Pointer to dynamic source location
-    const struct LocationState* toLocation = nullptr; // Pointer to dynamic destination location
+    const EdgeDef* def;
+    const struct LocationState* fromLocation = nullptr;
+    const struct LocationState* toLocation = nullptr;
 };
 
 // Dynamic location state
 struct LocationState {
-    const LocationDef* def; // Reference to static definition
+    const LocationDef* def;
     std::vector<VariableState> localVariables;
     std::vector<EdgeState*> outgoingEdges;
-    std::vector<EdgeState*> incomingEdges; // New: pointers to incoming edges
+    std::vector<EdgeState*> incomingEdges;
 };
 
 // Dynamic game state

@@ -98,7 +98,7 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         }
     } else if (edgeCreationState == EdgeCreationState::SelectDestination && event->button() == Qt::LeftButton && model) {
         int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), &model->sceneModel);
-        if (id != -1 && id != edgeSourceLocationId) {
+        if (id != -1) {
             finishEdgeCreation(id);
             event->accept();
             return;
@@ -368,7 +368,7 @@ void GraphWidget::keyReleaseEvent(QKeyEvent *event)
         // If in SelectDestination, try to finish edge creation if cursor is over a location
         if (edgeCreationState == EdgeCreationState::SelectDestination && model) {
             int id = graphwidget_helpers::findLocationAtMouse(model, memoCursorPos, &model->sceneModel);
-            if (id != -1 && id != edgeSourceLocationId) {
+            if (id != -1) {
                 finishEdgeCreation(id);
                 event->accept();
                 return;

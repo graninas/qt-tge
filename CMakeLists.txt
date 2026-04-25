@@ -82,6 +82,10 @@ add_executable(QtTGE_test_editor_dynamic_graph tests/test_editor_dynamic_graph.c
 target_link_libraries(QtTGE_test_editor_dynamic_graph PRIVATE Qt5::Core)
 add_test(NAME EditorDynamicGraphTest COMMAND ${CMAKE_BINARY_DIR}/QtTGE_test_editor_dynamic_graph)
 
+add_executable(QtTGE_test_editor_loop_edges tests/test_editor_loop_edges.cpp)
+target_link_libraries(QtTGE_test_editor_loop_edges PRIVATE Qt5::Core)
+add_test(NAME EditorLoopEdgesTest COMMAND ${CMAKE_BINARY_DIR}/QtTGE_test_editor_loop_edges)
+
 add_executable(QtTGE_test_player_runtime tests/test_player_runtime.cpp)
 target_link_libraries(QtTGE_test_player_runtime PRIVATE Qt5::Core)
 add_test(NAME PlayerRuntimeTest COMMAND ${CMAKE_BINARY_DIR}/QtTGE_test_player_runtime)
@@ -99,7 +103,7 @@ if(TARGET QtTGE_test_formula_translation)
 endif()
 
 # Expose cpp_parsec_free headers to the tests (if targets exist)
-foreach(tgt QtTGE_tests QtTGE_test_graph_structure QtTGE_test_editor_dynamic_graph QtTGE_test_player_runtime QtTGE_test_player_intermediate_path QtTGE_test_formula_translation)
+foreach(tgt QtTGE_tests QtTGE_test_graph_structure QtTGE_test_editor_dynamic_graph QtTGE_test_editor_loop_edges QtTGE_test_player_runtime QtTGE_test_player_intermediate_path QtTGE_test_formula_translation)
   if(TARGET ${tgt})
     target_include_directories(${tgt} PRIVATE ${cpp_parsec_free_SOURCE_DIR} ${cpp_parsec_free_SOURCE_DIR}/cpp_free_parsec)
   endif()

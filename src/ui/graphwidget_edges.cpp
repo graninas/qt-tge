@@ -25,6 +25,10 @@ void finishEdgeCreation(GraphWidget* w, int destinationLocationId) {
     try {
         if (w->edgeSourceLocationId == destinationLocationId) {
             int serviceLocId = w->model->manager.addLoopEdge(w->edgeSourceLocationId, "", "");
+            if (serviceLocId == -1) {
+                qWarning() << "Loop edge creation error:" << w->model->manager.lastError();
+                w->showErrorMessage(w->tr("Loop edge creation failed: ") + w->model->manager.lastError(), w->memoCursorPos);
+            }
             w->viewport()->update();
         } else {
             auto* edge = w->model->manager.addEdge(w->edgeSourceLocationId, destinationLocationId, "", "");

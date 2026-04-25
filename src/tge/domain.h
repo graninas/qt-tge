@@ -41,7 +41,7 @@ struct EdgeDef {
     int toLocation;   // index or id of destination location
     QString optionText;
     QString transitionText;
-    // Edge type can be added here if needed
+    QString condition; // Formula that must evaluate to true for this edge to be available
 };
 
 // Location definition
@@ -55,7 +55,8 @@ struct LocationDef {
     LocationType type;
     DescriptionPack descriptionPack;
     QVector<VariableDef> localVariables;
-    QVector<int> outgoingEdges; // Now stores edge ids
+    QVector<int> outgoingEdges;
+    QVector<int> incomingEdges;
     // UX domain model fields (editor only)
     int coordX, coordY;
     QString label;
