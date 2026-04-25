@@ -253,7 +253,14 @@ int parseAndEvaluateExpression(const std::string &src, const std::map<std::strin
 {
   using namespace ps;
 
-  const std::string input = "(" + src + ")"; // Wrap the input in parentheses to ensure it matches the operator expression format
+  std::string noSpaces;
+  for (char c : src) {
+    if (!std::isspace(static_cast<unsigned char>(c))) {
+      noSpaces += c;
+    }
+  }
+  const std::string input = "(" + noSpaces + ")"; // Wrap the input in parentheses to ensure it matches the operator expression format
+
 
   ParserRuntime runtime(input, State{});
   Parser<std::shared_ptr<ASTNode>> parser = expressionParser();
