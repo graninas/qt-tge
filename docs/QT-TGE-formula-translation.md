@@ -13,8 +13,8 @@ This document outlines the requirements and design considerations for the formul
   - Selector logic for choosing descriptions
 
 ## 2. Supported Operations
-- **Arithmetic:** `+`, `-`, `*`, `/`, `div`, `mod`
-- **Comparison:** `=`, `<>`, `<`, `>`, `<=`, `>=`
+- **Arithmetic:** `+`, `-`, `*`, `/`, `div`, `mod`, `neg`
+- **Comparison:** `==`, `!=`, `<`, `>`, `<=`, `>=`
 - **Logical:** `and`, `or`
 - **Range and set:** `to`, `in`
 - **Parentheses** for grouping and precedence
