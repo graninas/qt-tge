@@ -332,6 +332,7 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
                     if (dlg.exec() == QDialog::Accepted) {
                         edgeIt.value().optionText = dlg.optionText();
                         edgeIt.value().transitionText = dlg.transitionText();
+                        edgeIt.value().condition = dlg.conditionText();
                         viewport()->update();
                     }
                     event->accept();

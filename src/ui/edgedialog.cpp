@@ -3,7 +3,9 @@
 #include <QLabel>
 #include <QTextEdit>
 #include <QDialogButtonBox>
+#include <QPushButton>
 #include "tge/domain.h"
+#include "tge/formula/parser.h"
 
 EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
                        const tge::domain::LocationDef& fromLoc,
@@ -37,11 +39,23 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
     m_transitionEdit = new QTextEdit(edge.transitionText, this);
     layout->addWidget(m_transitionEdit);
 
+    // Condition formula
+    layout->addWidget(new QLabel(tr("Condition Formula:"), this));
+    m_conditionEdit = new QTextEdit(edge.condition, this);
+    m_conditionEdit->setMaximumHeight(60);
+    layout->addWidget(m_conditionEdit);
+
+    m_conditionStatusLabel = new QLabel(this);
+    layout->addWidget(m_conditionStatusLabel);
+
     // Buttons
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
-    connect(buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
-    connect(buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
-    layout->addWidget(buttons);
+    m_buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
+    connect(m_buttons, &QDialogButtonBox::accepted, this, &QDialog::accept);
+    connect(m_buttons, &QDialogButtonBox::rejected, this, &QDialog::reject);
+    layout->addWidget(m_buttons);
+
+    connect(m_conditionEdit, &QTextEdit::textChanged, this, &EdgeDialog::updateConditionValidation);
+    updateConditionValidation();
 }
 
 QString EdgeDialog::optionText() const {
@@ -50,4 +64,30 @@ QString EdgeDialog::optionText() const {
 
 QString EdgeDialog::transitionText() const {
     return m_transitionEdit->toPlainText();
+}
+
+QString EdgeDialog::conditionText() const {
+    return m_conditionEdit->toPlainText();
+}
+
+void EdgeDialog::updateConditionValidation() {
+    const QString condition = m_conditionEdit->toPlainText().trimmed();
+    if (condition.isEmpty()) {
+        m_conditionStatusLabel->setText(tr("Condition is empty: edge is always available"));
+        m_conditionStatusLabel->setStyleSheet("color: #6a8f43;");
+        m_buttons->button(QDialogButtonBox::Ok)->setEnabled(true);
+        return;
+    }
+
+    const auto parseResult = tge::formula::parse(condition.toStdString());
+    if (parseResult.ast) {
+        m_conditionStatusLabel->setText(tr("Formula parsed successfully"));
+        m_conditionStatusLabel->setStyleSheet("color: #1d7d31;");
+        m_buttons->button(QDialogButtonBox::Ok)->setEnabled(true);
+        return;
+    }
+
+    m_conditionStatusLabel->setText(tr("Parse error: %1").arg(QString::fromStdString(parseResult.error)));
+    m_conditionStatusLabel->setStyleSheet("color: #b00020;");
+    m_buttons->button(QDialogButtonBox::Ok)->setEnabled(false);
 }

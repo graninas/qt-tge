@@ -39,6 +39,7 @@ void finishEdgeCreation(GraphWidget* w, int destinationLocationId) {
                 if (dlg.exec() == QDialog::Accepted) {
                     edge->optionText = dlg.optionText();
                     edge->transitionText = dlg.transitionText();
+                    edge->condition = dlg.conditionText();
                 }
             } else {
                 qWarning() << "Edge creation error:" << w->model->manager.lastError();

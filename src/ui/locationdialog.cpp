@@ -147,6 +147,7 @@ void LocationDialog::onEdgeItemClicked(QListWidgetItem* item) {
     if (dlg.exec() == QDialog::Accepted) {
         edge.optionText = dlg.optionText();
         edge.transitionText = dlg.transitionText();
+        edge.condition = dlg.conditionText();
         populateEdgeList();
     }
 }
