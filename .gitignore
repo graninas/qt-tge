@@ -40,7 +40,7 @@ qrc_*.cpp
 .DS_Store
 
 # Qt autogen directory
-Qt-TGE_autogen/
+*_autogen/
 
 # Object files
 *.d
