@@ -1,5 +1,5 @@
 #include "mainwindow.h"
-#include "ui/ui_mainwindow.h"
+#include "ui_mainwindow.h"
 #include "graphwidget.h"
 #include "gui_model.h"
 #include <QToolBar>
