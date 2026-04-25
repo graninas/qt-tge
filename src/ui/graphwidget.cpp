@@ -336,12 +336,18 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
                 auto fromIt = model->gameDef.locations.find(edge.fromLocation);
                 auto toIt = model->gameDef.locations.find(edge.toLocation);
                 if (fromIt != model->gameDef.locations.end() && toIt != model->gameDef.locations.end()) {
-                    EdgeDialog dlg(edge, fromIt.value(), toIt.value(), model->gameDef.globalVariables, this);
+                    EdgeDialog dlg(edge,
+                                   fromIt.value(),
+                                   toIt.value(),
+                                   model->gameDef.globalVariables,
+                                   model->gameDef.infoDisplayItems,
+                                   this);
                     if (dlg.exec() == QDialog::Accepted) {
                         edgeIt.value().optionText = dlg.optionText();
                         edgeIt.value().transitionText = dlg.transitionText();
                         edgeIt.value().condition = dlg.conditionText();
                         edgeIt.value().variableSettings = dlg.variableSettings();
+                        edgeIt.value().infoDisplayItemSettings = dlg.infoDisplayItemSettings();
                         edgeIt.value().color = dlg.edgeColor();
                         viewport()->update();
                     }

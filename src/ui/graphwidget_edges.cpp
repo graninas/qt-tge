@@ -35,12 +35,18 @@ void finishEdgeCreation(GraphWidget* w, int destinationLocationId) {
             if (edge) {
                 auto& fromLoc = w->model->gameDef.locations[w->edgeSourceLocationId];
                 auto& toLoc = w->model->gameDef.locations[destinationLocationId];
-                EdgeDialog dlg(*edge, fromLoc, toLoc, w->model->gameDef.globalVariables, w);
+                EdgeDialog dlg(*edge,
+                               fromLoc,
+                               toLoc,
+                               w->model->gameDef.globalVariables,
+                               w->model->gameDef.infoDisplayItems,
+                               w);
                 if (dlg.exec() == QDialog::Accepted) {
                     edge->optionText = dlg.optionText();
                     edge->transitionText = dlg.transitionText();
                     edge->condition = dlg.conditionText();
                     edge->variableSettings = dlg.variableSettings();
+                    edge->infoDisplayItemSettings = dlg.infoDisplayItemSettings();
                     edge->color = dlg.edgeColor();
                 }
             } else {
