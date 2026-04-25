@@ -11,11 +11,11 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
 {
     ui->setupUi(this);
-    // Add the graph widget to the central widget
+
     graphWidget = new GraphWidget(this);
     setCentralWidget(graphWidget);
-    // Create and set the static test graph
-    static UiModel model = UiModel::makeTestGraph();
+
+    static UiModel model = UiModel::makeTestGame();
     graphWidget->setModel(&model);
 
     // Toolbox setup

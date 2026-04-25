@@ -115,6 +115,7 @@ public:
     UiModel() : manager(gameDef, editorState, idGen) {}
 
     static UiModel makeTestGraph();
+    static UiModel makeTestGame();
 };
 
 #endif // GUI_MODEL_H

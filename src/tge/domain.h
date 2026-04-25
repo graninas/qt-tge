@@ -9,7 +9,7 @@ namespace tge {
 namespace domain {
 
 // Supported variable types
-enum class VarType { String, Integer, Float, Char, Bool };
+enum class VarType { Integer };
 
 // Variable definition (static)
 struct VariableDef {
