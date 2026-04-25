@@ -151,8 +151,6 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
 
 void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 {
-    bool hoverChanged = false;
-
     memoCursorPos = event->pos();
 
     if (rightButtonPressed)
@@ -224,12 +222,27 @@ void GraphWidget::wheelEvent(QWheelEvent *event)
     // Custom zoom
     const double scaleFactor = 1.15;
     if (model) {
-        double currentScale = model->sceneModel.viewScale();
+        const QPointF mouseWidget = event->position();
+        const QPointF currentDelta = model->sceneModel.viewDelta();
+        const double currentScale = model->sceneModel.viewScale();
+
+        // Keep the same canvas point under mouse after scale change.
+        const QPointF mouseCanvasBefore = model->sceneModel.widgetToCanvas(mouseWidget);
+
+        double newScale = currentScale;
         if (event->angleDelta().y() > 0) {
-            model->sceneModel.setViewScale(currentScale * scaleFactor);
-        } else {
-            model->sceneModel.setViewScale(currentScale / scaleFactor);
+            newScale *= scaleFactor;
+        } else if (event->angleDelta().y() < 0) {
+            newScale /= scaleFactor;
         }
+
+        model->sceneModel.setViewScale(newScale);
+
+        const QPointF newDelta = mouseWidget - mouseCanvasBefore * newScale;
+        model->sceneModel.setViewDelta(newDelta);
+        event->accept();
+        viewport()->update();
+        return;
     }
     viewport()->update();
 }
@@ -246,10 +259,11 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
                                            appearanceSettings.labelOffsetY,
                                            hoveredLocationId);
         // Draw memo on top if hovering
-        if (hoveredLocationId != -1) {
+        auto locIt = model->gameDef.locations.find(hoveredLocationId);
+        if (locIt != model->gameDef.locations.end()) {
             painter->save();
             painter->resetTransform(); // Draw memo in widget coordinates
-            const auto& loc = model->gameDef.locations[hoveredLocationId];
+            const auto& loc = locIt.value();
             QString typeStr = graphwidget_helpers::locationTypeToString(loc.type, true);
             QString desc = graphwidget_helpers::firstDescription(loc);
             graphwidget_helpers::drawLocationMemo(painter, loc, memoCursorPos, typeStr, desc);
