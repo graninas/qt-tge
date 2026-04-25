@@ -2,6 +2,7 @@
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QFont>
+#include "graphwidget_helpers.h"
 
 EdgeListItemWidget::EdgeListItemWidget(const tge::domain::EdgeDef& edge, int thisLocId, QWidget* parent)
     : QWidget(parent), m_edgeId(edge.id)
@@ -24,6 +25,19 @@ EdgeListItemWidget::EdgeListItemWidget(const tge::domain::EdgeDef& edge, int thi
 
     QHBoxLayout* layout = new QHBoxLayout(this);
     layout->setContentsMargins(2, 2, 2, 2);
+
+    QLabel* colorSwatch = new QLabel(this);
+    colorSwatch->setFixedSize(10, 10);
+    if (edge.color >= 0 && edge.color < tge::domain::LOCATION_COLOR_COUNT) {
+        colorSwatch->setStyleSheet(QString("background-color: %1; border: 1px solid #444;")
+                                   .arg(graphwidget_helpers::LOCATION_COLOR_PALETTE[edge.color].name()));
+        colorSwatch->setToolTip(tr("Edge color"));
+    } else {
+        colorSwatch->setStyleSheet("background: #ffffff; border: 1px dashed #999;");
+        colorSwatch->setToolTip(tr("Default edge color"));
+    }
+    layout->addWidget(colorSwatch);
+
     // Bold edge id
     QLabel* idLabel = new QLabel(QString::number(edge.id), this);
     QFont boldFont = idLabel->font();
