@@ -15,6 +15,8 @@
 #include <QTextEdit>
 #include <QVBoxLayout>
 
+#include <limits>
+
 #include "tge/formula/parser.h"
 
 using tge::domain::InfoDisplayItemDef;
@@ -49,6 +51,12 @@ InfoDisplayItemsDialog::InfoDisplayItemsDialog(QVector<InfoDisplayItemDef>& item
     rightLayout->addWidget(new QLabel(tr("Selected Item:"), this));
 
     QFormLayout* form = new QFormLayout();
+
+    m_idSpin = new QSpinBox(this);
+    m_idSpin->setMinimum(0);
+    m_idSpin->setMaximum(std::numeric_limits<int>::max());
+    m_idSpin->setReadOnly(true);
+    form->addRow(tr("ID:"), m_idSpin);
 
     m_labelEdit = new QLineEdit(this);
     form->addRow(tr("Label:"), m_labelEdit);
@@ -137,7 +145,8 @@ void InfoDisplayItemsDialog::rebuildList()
         const QString shownLabel = item.label.trimmed().isEmpty() ? tr("(no label)") : item.label;
         const QString modeSuffix = (item.mode == InfoDisplayItemMode::Debug) ? tr(" [Debug]") : tr(" [Actual]");
         const QString visibilitySuffix = item.isVisible ? tr(" [Shown]") : tr(" [Hidden]");
-        m_listWidget->addItem(QString("%1 (p=%2)%3%4")
+        m_listWidget->addItem(QString("#%1 %2 (p=%3)%4%5")
+                      .arg(item.id)
                                   .arg(shownLabel)
                                   .arg(item.priority)
                                   .arg(modeSuffix)
@@ -148,6 +157,7 @@ void InfoDisplayItemsDialog::rebuildList()
 void InfoDisplayItemsDialog::updateEditorEnabledState()
 {
     const bool hasSelection = (m_currentRow >= 0 && m_currentRow < m_workingItems.size());
+    m_idSpin->setEnabled(hasSelection);
     m_labelEdit->setEnabled(hasSelection);
     m_formulaEdit->setEnabled(hasSelection);
     m_modeCombo->setEnabled(hasSelection);
@@ -179,6 +189,7 @@ void InfoDisplayItemsDialog::loadRowToEditor(int row)
     m_loadingEditor = true;
 
     if (row < 0 || row >= m_workingItems.size()) {
+        m_idSpin->setValue(0);
         m_labelEdit->clear();
         m_formulaEdit->clear();
         m_modeCombo->setCurrentIndex(0);
@@ -190,6 +201,7 @@ void InfoDisplayItemsDialog::loadRowToEditor(int row)
     }
 
     const InfoDisplayItemDef& item = m_workingItems[row];
+    m_idSpin->setValue(item.id);
     m_labelEdit->setText(item.label);
     m_formulaEdit->setPlainText(item.valueFormula);
 
@@ -225,12 +237,22 @@ void InfoDisplayItemsDialog::refreshRowCaption(int row)
     const QString modeSuffix = (item.mode == InfoDisplayItemMode::Debug) ? tr(" [Debug]") : tr(" [Actual]");
     const QString visibilitySuffix = item.isVisible ? tr(" [Shown]") : tr(" [Hidden]");
     if (QListWidgetItem* listItem = m_listWidget->item(row)) {
-        listItem->setText(QString("%1 (p=%2)%3%4")
+        listItem->setText(QString("#%1 %2 (p=%3)%4%5")
+                              .arg(item.id)
                               .arg(shownLabel)
                               .arg(item.priority)
                               .arg(modeSuffix)
                               .arg(visibilitySuffix));
     }
+}
+
+int InfoDisplayItemsDialog::nextItemId() const
+{
+    int maxId = 0;
+    for (const InfoDisplayItemDef& item : m_workingItems) {
+        maxId = qMax(maxId, item.id);
+    }
+    return maxId + 1;
 }
 
 void InfoDisplayItemsDialog::validateAndShowStatus()
@@ -309,6 +331,7 @@ void InfoDisplayItemsDialog::onAddItem()
     saveEditorToCurrentRow();
 
     InfoDisplayItemDef item;
+    item.id = nextItemId();
     item.label = tr("Item %1").arg(m_workingItems.size() + 1);
     item.valueFormula = "0";
     item.mode = InfoDisplayItemMode::Actual;

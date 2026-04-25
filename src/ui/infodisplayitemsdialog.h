@@ -40,6 +40,9 @@ private:
     void onAccepted();
 
 private:
+    int nextItemId() const;
+
+private:
     QVector<tge::domain::InfoDisplayItemDef>& m_itemsRef;
     QVector<tge::domain::InfoDisplayItemDef> m_workingItems;
 
@@ -50,6 +53,7 @@ private:
     QPushButton* m_addButton = nullptr;
     QPushButton* m_removeButton = nullptr;
 
+    QSpinBox* m_idSpin = nullptr;
     QLineEdit* m_labelEdit = nullptr;
     QTextEdit* m_formulaEdit = nullptr;
     QComboBox* m_modeCombo = nullptr;

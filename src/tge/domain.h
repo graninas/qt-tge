@@ -46,6 +46,17 @@ struct EdgeVariableSettingDef {
     QString newValueFormula; // Formula to compute the new value of the parameter when this edge is taken
 };
 
+struct EdgeInfoDisplayItemSettingDef {
+    int itemIndex; // Identifier (id) of the info display item to set
+    bool changePriority; // Whether to change the priority of the item
+    int newPriority; // New priority value, used if changePriority is true
+    bool changeVisibility; // Whether to change the visibility of the item
+    bool newVisibility; // New visibility value, used if changeVisibility is true
+    bool changeShowValue; // Whether to change the show value setting of the item
+    bool newShowValue; // New show value setting, used if changeShowValue is true
+    QString newValueFormula; // Formula to compute the new value of the item when this edge is taken, can be empty to keep current value
+};
+
 // Edge definition
 struct EdgeDef {
     int id;
@@ -56,6 +67,7 @@ struct EdgeDef {
     QString transitionText;
     QString condition; // Formula that must evaluate to true for this edge to be available (plus edge variable conditions), can be empty for always available
     QVector<EdgeVariableSettingDef> variableSettings; // Variable settings applied when this edge is taken
+    QVector<EdgeInfoDisplayItemSettingDef> infoDisplayItemSettings; // Info display item settings applied when this edge is taken
     int color = LOCATION_COLOR_NONE; // Palette index, -1 means default edge color
 };
 
@@ -79,6 +91,7 @@ enum class InfoDisplayItemMode { Actual, Debug };
 
 // Game info display model (editor only)
 struct InfoDisplayItemDef {
+    int id = 0;
     QString label;
     QString valueFormula; // Formula to compute the value to display
     InfoDisplayItemMode mode = InfoDisplayItemMode::Actual;
