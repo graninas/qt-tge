@@ -12,6 +12,7 @@
 #include <QPushButton>
 #include <QSet>
 #include <QSpinBox>
+#include <QTabWidget>
 #include <QTextEdit>
 #include <QVBoxLayout>
 
@@ -109,7 +110,9 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
     m_conditionStatusLabel = new QLabel(this);
     layout->addWidget(m_conditionStatusLabel);
 
-    QGroupBox* variableGroup = new QGroupBox(tr("Global Variable Settings"), this);
+    QTabWidget* settingsTabs = new QTabWidget(this);
+
+    QGroupBox* variableGroup = new QGroupBox(tr("Global Variable Settings"), settingsTabs);
     QHBoxLayout* variableRoot = new QHBoxLayout(variableGroup);
 
     m_variableList = new QListWidget(variableGroup);
@@ -137,7 +140,7 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
     variableEditorLayout->addStretch(1);
 
     variableRoot->addLayout(variableEditorLayout, 3);
-    layout->addWidget(variableGroup);
+    settingsTabs->addTab(variableGroup, tr("Global Variables"));
 
     rebuildVariableList();
     if (m_globalVariables.isEmpty()) {
@@ -148,7 +151,7 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
         m_variableList->setCurrentRow(0);
     }
 
-    QGroupBox* infoDisplayGroup = new QGroupBox(tr("Info Display Item Settings"), this);
+    QGroupBox* infoDisplayGroup = new QGroupBox(tr("Info Display Item Settings"), settingsTabs);
     QHBoxLayout* infoDisplayRoot = new QHBoxLayout(infoDisplayGroup);
 
     m_infoDisplayItemList = new QListWidget(infoDisplayGroup);
@@ -193,7 +196,9 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
     infoDisplayEditorLayout->addStretch(1);
 
     infoDisplayRoot->addLayout(infoDisplayEditorLayout, 3);
-    layout->addWidget(infoDisplayGroup);
+    settingsTabs->addTab(infoDisplayGroup, tr("Info Display"));
+
+    layout->addWidget(settingsTabs);
 
     rebuildInfoDisplayItemList();
     if (m_infoDisplayItems.isEmpty()) {
