@@ -31,7 +31,7 @@ add_executable(Qt-TGE ${SOURCES})
 target_link_libraries(Qt-TGE PRIVATE Qt5::Widgets Qt5::Core Qt5::Gui)
 
 # Build formula parser implementation as a static library so tests can link it
-add_library(tge_formula STATIC src/tge/formula/parser.cpp)
+add_library(tge_formula STATIC src/tge/formula/parser.cpp src/tge/formula/translator.cpp)
 target_include_directories(tge_formula PUBLIC src ${cpp_parsec_free_SOURCE_DIR} ${cpp_parsec_free_SOURCE_DIR}/cpp_free_parsec)
 
 # Link parser library into main executable

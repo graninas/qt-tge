@@ -1,5 +1,6 @@
 // test_formula_translation.cpp
 #include "../src/tge/formula/parser.h"
+#include "../src/tge/formula/translator.h"
 #include <iostream>
 #include <vector>
 #include <string>
