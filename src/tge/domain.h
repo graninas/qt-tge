@@ -82,6 +82,9 @@ struct InfoDisplayItemDef {
     QString label;
     QString valueFormula; // Formula to compute the value to display
     InfoDisplayItemMode mode = InfoDisplayItemMode::Actual;
+    int priority = 0; // Lower value means higher order in display
+    bool isVisible = false; // false = hidden, true = shown
+    bool showFormulaValue = true; // true = show computed formula value, false = hide it
 };
 
 // Game definition

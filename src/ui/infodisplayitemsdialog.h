@@ -10,9 +10,12 @@ class QListWidget;
 class QLineEdit;
 class QTextEdit;
 class QComboBox;
+class QSpinBox;
 class QLabel;
 class QPushButton;
 class QDialogButtonBox;
+class QButtonGroup;
+class QRadioButton;
 
 class InfoDisplayItemsDialog : public QDialog {
     Q_OBJECT
@@ -50,6 +53,13 @@ private:
     QLineEdit* m_labelEdit = nullptr;
     QTextEdit* m_formulaEdit = nullptr;
     QComboBox* m_modeCombo = nullptr;
+    QSpinBox* m_prioritySpin = nullptr;
+    QButtonGroup* m_visibilityGroup = nullptr;
+    QRadioButton* m_hiddenRadio = nullptr;
+    QRadioButton* m_shownRadio = nullptr;
+    QButtonGroup* m_showValueGroup = nullptr;
+    QRadioButton* m_showValueYesRadio = nullptr;
+    QRadioButton* m_showValueNoRadio = nullptr;
     QLabel* m_formulaStatusLabel = nullptr;
 
     QLabel* m_statusLabel = nullptr;

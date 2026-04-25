@@ -9,6 +9,9 @@
 #include <QListWidget>
 #include <QMessageBox>
 #include <QPushButton>
+#include <QRadioButton>
+#include <QButtonGroup>
+#include <QSpinBox>
 #include <QTextEdit>
 #include <QVBoxLayout>
 
@@ -59,6 +62,35 @@ InfoDisplayItemsDialog::InfoDisplayItemsDialog(QVector<InfoDisplayItemDef>& item
     m_modeCombo->addItem(tr("Debug"), static_cast<int>(InfoDisplayItemMode::Debug));
     form->addRow(tr("Mode:"), m_modeCombo);
 
+    m_prioritySpin = new QSpinBox(this);
+    m_prioritySpin->setMinimum(-1000000000);
+    m_prioritySpin->setMaximum(1000000000);
+    form->addRow(tr("Priority:"), m_prioritySpin);
+
+    QWidget* visibilityWidget = new QWidget(this);
+    QHBoxLayout* visibilityLayout = new QHBoxLayout(visibilityWidget);
+    visibilityLayout->setContentsMargins(0, 0, 0, 0);
+    m_visibilityGroup = new QButtonGroup(this);
+    m_hiddenRadio = new QRadioButton(tr("Hidden"), visibilityWidget);
+    m_shownRadio = new QRadioButton(tr("Shown"), visibilityWidget);
+    m_visibilityGroup->addButton(m_hiddenRadio, 0);
+    m_visibilityGroup->addButton(m_shownRadio, 1);
+    visibilityLayout->addWidget(m_hiddenRadio);
+    visibilityLayout->addWidget(m_shownRadio);
+    form->addRow(tr("Display item:"), visibilityWidget);
+
+    QWidget* showValueWidget = new QWidget(this);
+    QHBoxLayout* showValueLayout = new QHBoxLayout(showValueWidget);
+    showValueLayout->setContentsMargins(0, 0, 0, 0);
+    m_showValueGroup = new QButtonGroup(this);
+    m_showValueYesRadio = new QRadioButton(tr("Yes"), showValueWidget);
+    m_showValueNoRadio = new QRadioButton(tr("No"), showValueWidget);
+    m_showValueGroup->addButton(m_showValueYesRadio, 1);
+    m_showValueGroup->addButton(m_showValueNoRadio, 0);
+    showValueLayout->addWidget(m_showValueYesRadio);
+    showValueLayout->addWidget(m_showValueNoRadio);
+    form->addRow(tr("Show formula value:"), showValueWidget);
+
     rightLayout->addLayout(form, 1);
 
     m_formulaStatusLabel = new QLabel(this);
@@ -79,6 +111,11 @@ InfoDisplayItemsDialog::InfoDisplayItemsDialog(QVector<InfoDisplayItemDef>& item
     connect(m_labelEdit, &QLineEdit::textChanged, this, [this](const QString&) { onEditorChanged(); });
     connect(m_formulaEdit, &QTextEdit::textChanged, this, &InfoDisplayItemsDialog::onEditorChanged);
     connect(m_modeCombo, qOverload<int>(&QComboBox::currentIndexChanged), this, [this](int) { onEditorChanged(); });
+    connect(m_prioritySpin, qOverload<int>(&QSpinBox::valueChanged), this, [this](int) { onEditorChanged(); });
+    connect(m_hiddenRadio, &QRadioButton::toggled, this, [this](bool) { onEditorChanged(); });
+    connect(m_shownRadio, &QRadioButton::toggled, this, [this](bool) { onEditorChanged(); });
+    connect(m_showValueYesRadio, &QRadioButton::toggled, this, [this](bool) { onEditorChanged(); });
+    connect(m_showValueNoRadio, &QRadioButton::toggled, this, [this](bool) { onEditorChanged(); });
 
     connect(m_buttonBox, &QDialogButtonBox::accepted, this, &InfoDisplayItemsDialog::onAccepted);
     connect(m_buttonBox, &QDialogButtonBox::rejected, this, &QDialog::reject);
@@ -99,7 +136,12 @@ void InfoDisplayItemsDialog::rebuildList()
         const InfoDisplayItemDef& item = m_workingItems[i];
         const QString shownLabel = item.label.trimmed().isEmpty() ? tr("(no label)") : item.label;
         const QString modeSuffix = (item.mode == InfoDisplayItemMode::Debug) ? tr(" [Debug]") : tr(" [Actual]");
-        m_listWidget->addItem(shownLabel + modeSuffix);
+        const QString visibilitySuffix = item.isVisible ? tr(" [Shown]") : tr(" [Hidden]");
+        m_listWidget->addItem(QString("%1 (p=%2)%3%4")
+                                  .arg(shownLabel)
+                                  .arg(item.priority)
+                                  .arg(modeSuffix)
+                                  .arg(visibilitySuffix));
     }
 }
 
@@ -109,6 +151,11 @@ void InfoDisplayItemsDialog::updateEditorEnabledState()
     m_labelEdit->setEnabled(hasSelection);
     m_formulaEdit->setEnabled(hasSelection);
     m_modeCombo->setEnabled(hasSelection);
+    m_prioritySpin->setEnabled(hasSelection);
+    m_hiddenRadio->setEnabled(hasSelection);
+    m_shownRadio->setEnabled(hasSelection);
+    m_showValueYesRadio->setEnabled(hasSelection);
+    m_showValueNoRadio->setEnabled(hasSelection);
     m_removeButton->setEnabled(hasSelection);
 }
 
@@ -122,6 +169,9 @@ void InfoDisplayItemsDialog::saveEditorToCurrentRow()
     item.label = m_labelEdit->text();
     item.valueFormula = m_formulaEdit->toPlainText().trimmed();
     item.mode = static_cast<InfoDisplayItemMode>(m_modeCombo->currentData().toInt());
+    item.priority = m_prioritySpin->value();
+    item.isVisible = m_shownRadio->isChecked();
+    item.showFormulaValue = m_showValueYesRadio->isChecked();
 }
 
 void InfoDisplayItemsDialog::loadRowToEditor(int row)
@@ -132,6 +182,9 @@ void InfoDisplayItemsDialog::loadRowToEditor(int row)
         m_labelEdit->clear();
         m_formulaEdit->clear();
         m_modeCombo->setCurrentIndex(0);
+        m_prioritySpin->setValue(0);
+        m_hiddenRadio->setChecked(true);
+        m_showValueYesRadio->setChecked(true);
         m_loadingEditor = false;
         return;
     }
@@ -146,6 +199,17 @@ void InfoDisplayItemsDialog::loadRowToEditor(int row)
         comboIndex = 0;
     }
     m_modeCombo->setCurrentIndex(comboIndex);
+    m_prioritySpin->setValue(item.priority);
+    if (item.isVisible) {
+        m_shownRadio->setChecked(true);
+    } else {
+        m_hiddenRadio->setChecked(true);
+    }
+    if (item.showFormulaValue) {
+        m_showValueYesRadio->setChecked(true);
+    } else {
+        m_showValueNoRadio->setChecked(true);
+    }
 
     m_loadingEditor = false;
 }
@@ -159,8 +223,13 @@ void InfoDisplayItemsDialog::refreshRowCaption(int row)
     const InfoDisplayItemDef& item = m_workingItems[row];
     const QString shownLabel = item.label.trimmed().isEmpty() ? tr("(no label)") : item.label;
     const QString modeSuffix = (item.mode == InfoDisplayItemMode::Debug) ? tr(" [Debug]") : tr(" [Actual]");
+    const QString visibilitySuffix = item.isVisible ? tr(" [Shown]") : tr(" [Hidden]");
     if (QListWidgetItem* listItem = m_listWidget->item(row)) {
-        listItem->setText(shownLabel + modeSuffix);
+        listItem->setText(QString("%1 (p=%2)%3%4")
+                              .arg(shownLabel)
+                              .arg(item.priority)
+                              .arg(modeSuffix)
+                              .arg(visibilitySuffix));
     }
 }
 
@@ -243,6 +312,9 @@ void InfoDisplayItemsDialog::onAddItem()
     item.label = tr("Item %1").arg(m_workingItems.size() + 1);
     item.valueFormula = "0";
     item.mode = InfoDisplayItemMode::Actual;
+    item.priority = m_workingItems.size();
+    item.isVisible = false;
+    item.showFormulaValue = true;
 
     m_workingItems.append(item);
     rebuildList();
