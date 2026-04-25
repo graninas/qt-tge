@@ -23,7 +23,7 @@ void drawEdgeMemo(QPainter* painter, const tge::domain::EdgeDef& edge, const QPo
 
 // Draw all edges using SceneModel for coordinate transformations
 void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int hoveredEdgeId = -1);
-void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, double radius = 10.0, double size = 12.0);
+void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, double radius = 10.0, double size = 12.0, const QColor& color = Qt::darkGreen);
 
 // Check if canvas point is on location (canvas coordinates, not scene)
 bool isPointOnLocation(const QPointF& canvasPoint, const tge::domain::LocationDef& loc, const SceneModel* sceneModel, double radius = 10.0);

@@ -40,6 +40,7 @@ void finishEdgeCreation(GraphWidget* w, int destinationLocationId) {
                     edge->optionText = dlg.optionText();
                     edge->transitionText = dlg.transitionText();
                     edge->condition = dlg.conditionText();
+                    edge->color = dlg.edgeColor();
                 }
             } else {
                 qWarning() << "Edge creation error:" << w->model->manager.lastError();

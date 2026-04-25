@@ -34,6 +34,9 @@ struct DescriptionPack {
     SelectorDef selector;
 };
 
+constexpr int LOCATION_COLOR_NONE = -1;
+constexpr int LOCATION_COLOR_COUNT = 15;
+
 // Edge definition
 struct EdgeDef {
     int id;
@@ -42,13 +45,11 @@ struct EdgeDef {
     QString optionText;
     QString transitionText;
     QString condition; // Formula that must evaluate to true for this edge to be available
+    int color = LOCATION_COLOR_NONE; // Palette index, -1 means default edge color
 };
 
 // Location definition
 enum class LocationType { Start, Regular, Service, Finish };
-
-constexpr int LOCATION_COLOR_NONE = -1;
-constexpr int LOCATION_COLOR_COUNT = 15;
 
 struct LocationDef {
     int id;

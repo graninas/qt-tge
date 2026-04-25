@@ -80,7 +80,7 @@ void drawGrid(QPainter *painter, const QRectF &rect, const SceneModel* sceneMode
     }
 }
 
-void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, double radius, double size) {
+void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, double radius, double size, const QColor& color) {
     // Compute direction
     QLineF line(from, to);
     if (line.length() == 0) return;
@@ -92,7 +92,8 @@ void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, do
     QPointF right = tip + QPointF(-size * std::cos(angle + M_PI / 6), size * std::sin(angle + M_PI / 6));
     QPolygonF arrowHead;
     arrowHead << tip << left << right;
-    painter->setBrush(Qt::darkGreen);
+    painter->setBrush(color);
+    painter->setPen(QPen(color, 1));
     painter->drawPolygon(arrowHead);
 }
 
@@ -204,8 +205,15 @@ void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneM
             double offset = edgeOffset[i];
             // Flip offset for reverse direction
             if (a > b) offset = -offset;
+
+            QColor baseColor = Qt::darkGreen;
+            if (edge.color >= 0 && edge.color < LOCATION_COLOR_COUNT) {
+                baseColor = LOCATION_COLOR_PALETTE[edge.color];
+            }
+
             const bool isHovered = (i == hoveredEdgeId);
-            QPen edgePen(isHovered ? QColor(0, 110, 0) : Qt::darkGreen, isHovered ? 4 : 2);
+            QColor paintColor = isHovered ? baseColor.darker(130) : baseColor;
+            QPen edgePen(paintColor, isHovered ? 4 : 2);
             painter->setPen(edgePen);
             painter->setBrush(Qt::NoBrush);
 
@@ -213,10 +221,10 @@ void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneM
             painter->drawPath(path);
 
             if (std::abs(offset) < 1e-9) {
-                drawArrowHead(painter, p1, p2, 14.0, isHovered ? 16.0 : 14.0);
+                drawArrowHead(painter, p1, p2, 14.0, isHovered ? 16.0 : 14.0, paintColor);
             } else {
                 QPointF ctrl = edgeControlPoint(p1, p2, offset);
-                drawArrowHead(painter, ctrl, p2, 14.0, isHovered ? 16.0 : 14.0);
+                drawArrowHead(painter, ctrl, p2, 14.0, isHovered ? 16.0 : 14.0, paintColor);
             }
         }
     }

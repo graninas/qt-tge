@@ -118,6 +118,7 @@ public:
         edge.optionText = optionText;
         edge.transitionText = transitionText;
         edge.condition = condition;
+        edge.color = tge::domain::LOCATION_COLOR_NONE;
         m_game.edges[edge.id] = edge;
 
         auto& out = m_game.locations[fromId].outgoingEdges;

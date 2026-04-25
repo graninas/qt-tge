@@ -148,6 +148,7 @@ void LocationDialog::onEdgeItemClicked(QListWidgetItem* item) {
         edge.optionText = dlg.optionText();
         edge.transitionText = dlg.transitionText();
         edge.condition = dlg.conditionText();
+        edge.color = dlg.edgeColor();
         populateEdgeList();
     }
 }
@@ -176,7 +177,7 @@ void LocationDialog::setupColorPaletteUI(QVBoxLayout* layout) {
         grid->addWidget(btn, i / 8, i % 8);
     }
     layout->addLayout(grid);
-    connect(m_colorButtonGroup, QOverload<int>::of(&QButtonGroup::buttonClicked), this, &LocationDialog::onColorButtonClicked);
+    connect(m_colorButtonGroup, &QButtonGroup::idClicked, this, &LocationDialog::onColorButtonClicked);
     updateColorSelection();
 }
 

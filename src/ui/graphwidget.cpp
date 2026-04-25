@@ -341,6 +341,7 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
                         edgeIt.value().optionText = dlg.optionText();
                         edgeIt.value().transitionText = dlg.transitionText();
                         edgeIt.value().condition = dlg.conditionText();
+                        edgeIt.value().color = dlg.edgeColor();
                         viewport()->update();
                     }
                     event->accept();
