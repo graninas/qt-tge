@@ -9,26 +9,6 @@
 namespace tge {
 namespace formula {
 
-struct ASTNode
-{
-  enum class Type
-  {
-    Parameter,
-    Operator,
-    Number
-  };
-
-  Type type;
-  std::string value; // For parameters and operators
-  int number;        // For numeric values
-
-  std::shared_ptr<ASTNode> left;  // Left child (for binary operators)
-  std::shared_ptr<ASTNode> right; // Right child (for binary operators)
-
-  ASTNode(Type t, const std::string &val) : type(t), value(val), number(0) {}
-  ASTNode(Type t, int num) : type(t), number(num) {}
-};
-
 static std::shared_ptr<ASTNode> makeOp(
     const std::string &op,
     const std::shared_ptr<ASTNode> &left,
@@ -447,6 +427,20 @@ int parseAndEvaluateExpression(const std::string &src, const std::map<std::strin
   ExpressionParser parser(src);
   std::shared_ptr<ASTNode> ast = parser.parse();
   return evaluateAST(ast, params);
+}
+
+ParseResult parse(const std::string &src)
+{
+  try
+  {
+    ExpressionParser parser(src);
+    std::shared_ptr<ASTNode> ast = parser.parse();
+    return {ast, ""};
+  }
+  catch (const std::exception &e)
+  {
+    return {nullptr, e.what()};
+  }
 }
 
 } // namespace formula
