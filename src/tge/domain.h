@@ -8,6 +8,9 @@
 namespace tge {
 namespace domain {
 
+constexpr int LOCATION_COLOR_NONE = -1;
+constexpr int LOCATION_COLOR_COUNT = 15;
+
 // Supported variable types
 enum class VarType { Integer };
 
@@ -35,17 +38,24 @@ struct DescriptionPack {
     SelectorDef selector;
 };
 
-constexpr int LOCATION_COLOR_NONE = -1;
-constexpr int LOCATION_COLOR_COUNT = 15;
+
+// Edge variable setting definition
+struct EdgeVariableSettingDef {
+    int variableIndex; // Identifier of the parameter to set, e.g. (P)1
+    QString edgeVariableCondition; // Formula that must evaluate to true for this edge to be available (plus global edge condition), can be empty for always available
+    QString newValueFormula; // Formula to compute the new value of the parameter when this edge is taken
+};
 
 // Edge definition
 struct EdgeDef {
     int id;
     int fromLocation; // index or id of source location
     int toLocation;   // index or id of destination location
+
     QString optionText;
     QString transitionText;
-    QString condition; // Formula that must evaluate to true for this edge to be available
+    QString condition; // Formula that must evaluate to true for this edge to be available (plus edge variable conditions), can be empty for always available
+    QVector<EdgeVariableSettingDef> variableSettings; // Variable settings applied when this edge is taken
     int color = LOCATION_COLOR_NONE; // Palette index, -1 means default edge color
 };
 

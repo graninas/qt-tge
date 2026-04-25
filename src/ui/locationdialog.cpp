@@ -143,11 +143,12 @@ void LocationDialog::onEdgeItemClicked(QListWidgetItem* item) {
     auto& edge = game.edges[edgeId];
     auto& fromLoc = game.locations[edge.fromLocation];
     auto& toLoc = game.locations[edge.toLocation];
-    EdgeDialog dlg(edge, fromLoc, toLoc, this);
+    EdgeDialog dlg(edge, fromLoc, toLoc, game.globalVariables, this);
     if (dlg.exec() == QDialog::Accepted) {
         edge.optionText = dlg.optionText();
         edge.transitionText = dlg.transitionText();
         edge.condition = dlg.conditionText();
+        edge.variableSettings = dlg.variableSettings();
         edge.color = dlg.edgeColor();
         populateEdgeList();
     }
