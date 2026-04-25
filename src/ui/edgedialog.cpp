@@ -288,6 +288,18 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
         updateValidation();
     });
 
+    // Keep internal row trackers in sync with preselected list rows.
+    if (!m_globalVariables.isEmpty()) {
+        m_currentVariableRow = m_variableList->currentRow();
+        loadVariableRowToEditor(m_currentVariableRow);
+        updateVariableEditorsEnabledState();
+    }
+    if (!m_infoDisplayItems.isEmpty()) {
+        m_currentInfoDisplayRow = m_infoDisplayItemList->currentRow();
+        loadInfoDisplayItemRowToEditor(m_currentInfoDisplayRow);
+        updateInfoDisplayItemEditorsEnabledState();
+    }
+
     updateValidation();
 }
 
