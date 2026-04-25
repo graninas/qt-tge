@@ -175,13 +175,11 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
     // Hover detection
     int newHovered = -1;
     if (model) {
-        QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), &model->sceneModel);
+        QPointF mouseCanvas = model->sceneModel.widgetToCanvas(event->pos());
         for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
             int id = it.key();
             const auto& loc = it.value();
-            if (graphwidget_helpers::isPointOnLocation(
-                model->sceneModel.sceneToCanvas(QPointF(loc.coordX, loc.coordY)),
-                loc, &model->sceneModel)) {
+            if (graphwidget_helpers::isPointOnLocation(mouseCanvas, loc, &model->sceneModel)) {
                 newHovered = id;
                 break;
             }

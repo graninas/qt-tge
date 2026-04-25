@@ -42,13 +42,11 @@ void handleLocationDrag(GraphWidget* w, QMouseEvent* event) {
 void handleLocationHover(GraphWidget* w, QMouseEvent* event) {
     int newHovered = -1;
     if (w->model) {
-        QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), &w->model->sceneModel);
+        QPointF mouseCanvas = w->model->sceneModel.widgetToCanvas(event->pos());
         for (auto it = w->model->gameDef.locations.constBegin(); it != w->model->gameDef.locations.constEnd(); ++it) {
             int id = it.key();
             const auto& loc = it.value();
-            if (graphwidget_helpers::isPointOnLocation(
-                w->model->sceneModel.sceneToCanvas(QPointF(loc.coordX, loc.coordY)),
-                loc, &w->model->sceneModel)) {
+            if (graphwidget_helpers::isPointOnLocation(mouseCanvas, loc, &w->model->sceneModel)) {
                 newHovered = id;
                 break;
             }
