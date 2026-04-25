@@ -275,6 +275,14 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
             QString desc = graphwidget_helpers::firstDescription(loc);
             graphwidget_helpers::drawLocationMemo(painter, loc, memoCursorPos, typeStr, desc);
             painter->restore();
+        } else {
+            auto edgeIt = model->gameDef.edges.find(hoveredEdgeId);
+            if (edgeIt != model->gameDef.edges.end()) {
+                painter->save();
+                painter->resetTransform(); // Draw edge memo in widget coordinates
+                graphwidget_helpers::drawEdgeMemo(painter, edgeIt.value(), memoCursorPos);
+                painter->restore();
+            }
         }
     }
     painter->restore();

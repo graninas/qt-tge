@@ -332,6 +332,60 @@ void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, co
     }
 }
 
+void drawEdgeMemo(QPainter* painter, const tge::domain::EdgeDef& edge, const QPoint& pos) {
+    QColor bgColor(230, 255, 230);
+    QColor borderColor(40, 140, 60);
+    QColor shadowColor(0, 0, 0, 60);
+    int pad = 8;
+    int radius = 10;
+    int shadowOffset = 4;
+
+    QFont font = painter->font();
+    font.setPointSize(10);
+    painter->setFont(font);
+
+    QStringList lines;
+    lines << QString("Edge %1: %2 -> %3")
+                 .arg(edge.id)
+                 .arg(edge.fromLocation)
+                 .arg(edge.toLocation);
+    if (!edge.optionText.trimmed().isEmpty()) {
+        lines << QString("Option: %1").arg(edge.optionText);
+    }
+    if (!edge.transitionText.trimmed().isEmpty()) {
+        lines << QString("Transition: %1").arg(edge.transitionText);
+    }
+    if (!edge.condition.trimmed().isEmpty()) {
+        lines << QString("Condition: %1").arg(edge.condition);
+    } else {
+        lines << QString("Condition: (always available)");
+    }
+
+    QFontMetrics fm(font);
+    int width = 0;
+    for (const QString& line : lines) {
+        width = std::max(width, fm.horizontalAdvance(line));
+    }
+    int height = lines.size() * fm.height();
+    QRect rect(pos.x() + 25, pos.y() + 20, width + 2 * pad, height + 2 * pad);
+
+    QRect shadowRect = rect.translated(shadowOffset, shadowOffset);
+    painter->setBrush(shadowColor);
+    painter->setPen(Qt::NoPen);
+    painter->drawRoundedRect(shadowRect, radius, radius);
+
+    painter->setBrush(bgColor);
+    painter->setPen(QPen(borderColor, 2));
+    painter->drawRoundedRect(rect, radius, radius);
+
+    painter->setPen(Qt::black);
+    int y = rect.top() + pad + fm.ascent();
+    for (const QString& line : lines) {
+        painter->drawText(rect.left() + pad, y, line);
+        y += fm.height();
+    }
+}
+
 // Returns true if the given canvas point is within radius of the location's position
 bool isPointOnLocation(const QPointF& canvasPoint, const tge::domain::LocationDef& loc, const SceneModel* sceneModel, double radius) {
     if (!sceneModel) return false;

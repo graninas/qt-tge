@@ -19,6 +19,7 @@ void drawGrid(QPainter *painter, const QRectF &rect, const SceneModel* sceneMode
 // Draw all locations using SceneModel for coordinate transformations
 void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int customColorRingWidth, int hoveredLocationId = -1);
 void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, const QPoint& pos, const QString& typeStr, const QString& desc);
+void drawEdgeMemo(QPainter* painter, const tge::domain::EdgeDef& edge, const QPoint& pos);
 
 // Draw all edges using SceneModel for coordinate transformations
 void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int hoveredEdgeId = -1);
