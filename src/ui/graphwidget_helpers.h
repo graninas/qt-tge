@@ -21,7 +21,7 @@ void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sc
 void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, const QPoint& pos, const QString& typeStr, const QString& desc);
 
 // Draw all edges using SceneModel for coordinate transformations
-void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel);
+void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int hoveredEdgeId = -1);
 void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, double radius = 10.0, double size = 12.0);
 
 // Check if canvas point is on location (canvas coordinates, not scene)
@@ -31,6 +31,9 @@ QString locationTypeToString(tge::domain::LocationType type, bool lower = false)
 
 // Returns the id of the location under the given mouse position, or -1 if none
 int findLocationAtMouse(const UiModel* model, const QPoint& mousePos, const SceneModel* sceneModel);
+
+// Returns the id of the edge under the given mouse position, or -1 if none.
+int findEdgeAtMouse(const UiModel* model, const QPoint& mousePos, const SceneModel* sceneModel, double hitWidth = 12.0);
 
 // Transforms a mouse position to scene coordinates
 QPointF mouseToScene(const QPoint& mousePos, const SceneModel* sceneModel);

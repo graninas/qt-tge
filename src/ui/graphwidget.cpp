@@ -172,6 +172,7 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
     }
     // Hover detection
     int newHovered = -1;
+    int newHoveredEdge = -1;
     if (model) {
         QPointF mouseCanvas = model->sceneModel.widgetToCanvas(event->pos());
         for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
@@ -182,9 +183,14 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
                 break;
             }
         }
+        // Edge hover has lower priority than location hover.
+        if (newHovered == -1) {
+            newHoveredEdge = graphwidget_helpers::findEdgeAtMouse(model, event->pos(), &model->sceneModel);
+        }
     }
-    if (newHovered != hoveredLocationId) {
+    if (newHovered != hoveredLocationId || newHoveredEdge != hoveredEdgeId) {
         hoveredLocationId = newHovered;
+        hoveredEdgeId = newHoveredEdge;
         viewport()->update();
     }
     if (edgeCreationState == EdgeCreationState::SelectDestination) {
@@ -253,7 +259,7 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
     painter->setRenderHint(QPainter::Antialiasing);
     if (model) {
         graphwidget_helpers::drawGrid(painter, rect, &model->sceneModel);
-        graphwidget_helpers::drawEdges(painter, model, &model->sceneModel);
+        graphwidget_helpers::drawEdges(painter, model, &model->sceneModel, hoveredEdgeId);
         graphwidget_helpers::drawLocations(painter, model, &model->sceneModel,
                                            appearanceSettings.idOffsetY,
                                            appearanceSettings.labelOffsetY,
@@ -311,6 +317,26 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
             graphwidget_locations::handleLocationEdit(this, id);
             event->accept();
             return;
+        }
+
+        int edgeId = graphwidget_helpers::findEdgeAtMouse(model, event->pos(), &model->sceneModel);
+        if (edgeId != -1) {
+            auto edgeIt = model->gameDef.edges.find(edgeId);
+            if (edgeIt != model->gameDef.edges.end()) {
+                const auto& edge = edgeIt.value();
+                auto fromIt = model->gameDef.locations.find(edge.fromLocation);
+                auto toIt = model->gameDef.locations.find(edge.toLocation);
+                if (fromIt != model->gameDef.locations.end() && toIt != model->gameDef.locations.end()) {
+                    EdgeDialog dlg(edge, fromIt.value(), toIt.value(), this);
+                    if (dlg.exec() == QDialog::Accepted) {
+                        edgeIt.value().optionText = dlg.optionText();
+                        edgeIt.value().transitionText = dlg.transitionText();
+                        viewport()->update();
+                    }
+                    event->accept();
+                    return;
+                }
+            }
         }
     }
     QGraphicsView::mouseDoubleClickEvent(event);

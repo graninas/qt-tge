@@ -63,6 +63,7 @@ private:
     UiModel *model = nullptr;
 
     int hoveredLocationId = -1;
+    int hoveredEdgeId = -1;
     QPoint memoCursorPos; // Screen position for memo
     bool newLocationMode = false;
 

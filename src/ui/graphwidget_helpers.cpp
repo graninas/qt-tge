@@ -10,6 +10,7 @@
 #include "gui_model.h"
 #include "locationdialog.h"
 #include <QDialog>
+#include <QPainterPathStroker>
 
 using namespace tge::domain;
 
@@ -127,6 +128,30 @@ void drawEdgeCurvedSimple(QPainter *painter, const QPointF &p1, const QPointF &p
     drawArrowHead(painter, ctrl, p2, 14.0, 14.0);
 }
 
+static QPointF edgeControlPoint(const QPointF& p1, const QPointF& p2, double offset) {
+    QPointF mid = (p1 + p2) / 2.0;
+    double dx = p2.x() - p1.x();
+    double dy = p2.y() - p1.y();
+    double length = std::sqrt(dx * dx + dy * dy);
+    if (length == 0.0) {
+        return mid;
+    }
+    double nx = -dy / length;
+    double ny = dx / length;
+    return mid + QPointF(nx * offset, ny * offset);
+}
+
+static QPainterPath edgePath(const QPointF& p1, const QPointF& p2, double offset) {
+    QPainterPath path(p1);
+    if (std::abs(offset) < 1e-9) {
+        path.lineTo(p2);
+        return path;
+    }
+    QPointF ctrl = edgeControlPoint(p1, p2, offset);
+    path.quadTo(ctrl, p2);
+    return path;
+}
+
 // Helper: assign symmetric offsets to all edges between each unordered node pair
 static void computeRepellingOffsets(const UiModel* model, std::map<int, double>& edgeOffset) {
     double baseOffset = 40.0;
@@ -154,7 +179,7 @@ static void computeRepellingOffsets(const UiModel* model, std::map<int, double>&
     }
 }
 
-void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel) {
+void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int hoveredEdgeId) {
     if (!sceneModel) return;
 
     std::map<int, double> edgeOffset;
@@ -179,13 +204,19 @@ void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneM
             double offset = edgeOffset[i];
             // Flip offset for reverse direction
             if (a > b) offset = -offset;
+            const bool isHovered = (i == hoveredEdgeId);
+            QPen edgePen(isHovered ? QColor(0, 110, 0) : Qt::darkGreen, isHovered ? 4 : 2);
+            painter->setPen(edgePen);
+            painter->setBrush(Qt::NoBrush);
 
-            if (offset == 0.0) {
-                painter->setPen(QPen(Qt::darkGreen, 2));
-                painter->drawLine(p1, p2);
-                drawArrowHead(painter, p1, p2, 14.0, 14.0);
+            QPainterPath path = edgePath(p1, p2, offset);
+            painter->drawPath(path);
+
+            if (std::abs(offset) < 1e-9) {
+                drawArrowHead(painter, p1, p2, 14.0, isHovered ? 16.0 : 14.0);
             } else {
-                drawEdgeCurvedSimple(painter, p1, p2, offset);
+                QPointF ctrl = edgeControlPoint(p1, p2, offset);
+                drawArrowHead(painter, ctrl, p2, 14.0, isHovered ? 16.0 : 14.0);
             }
         }
     }
@@ -326,6 +357,45 @@ int findLocationAtMouse(const UiModel* model, const QPoint& mousePos, const Scen
             return id;
         }
     }
+    return -1;
+}
+
+int findEdgeAtMouse(const UiModel* model, const QPoint& mousePos, const SceneModel* sceneModel, double hitWidth) {
+    if (!model || !sceneModel) return -1;
+
+    const QPointF mouseCanvas = sceneModel->widgetToCanvas(mousePos);
+
+    std::map<int, double> edgeOffset;
+    computeRepellingOffsets(model, edgeOffset);
+
+    for (auto it = model->gameDef.edges.constBegin(); it != model->gameDef.edges.constEnd(); ++it) {
+        int edgeId = it.key();
+        const auto& edge = it.value();
+
+        const auto& locations = model->gameDef.locations;
+        auto from = locations.find(edge.fromLocation);
+        auto to = locations.find(edge.toLocation);
+        if (from == locations.end() || to == locations.end()) {
+            continue;
+        }
+
+        QPointF p1 = sceneModel->sceneToCanvas(QPointF(from.value().coordX, from.value().coordY));
+        QPointF p2 = sceneModel->sceneToCanvas(QPointF(to.value().coordX, to.value().coordY));
+
+        double offset = edgeOffset[edgeId];
+        if (edge.fromLocation > edge.toLocation) {
+            offset = -offset;
+        }
+
+        QPainterPath path = edgePath(p1, p2, offset);
+        QPainterPathStroker stroker;
+        stroker.setWidth(hitWidth);
+        QPainterPath hitArea = stroker.createStroke(path);
+        if (hitArea.contains(mouseCanvas)) {
+            return edgeId;
+        }
+    }
+
     return -1;
 }
 
