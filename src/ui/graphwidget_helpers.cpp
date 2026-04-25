@@ -32,16 +32,25 @@ const QColor LOCATION_COLOR_PALETTE[LOCATION_COLOR_COUNT] = {
     QColor(233, 30, 99)     // Magenta
 };
 
-void drawGrid(QPainter *painter, const QRectF &rect, double step, const QPointF &viewDelta, double viewScale) {
-    painter->translate(viewDelta);
-    painter->scale(viewScale, viewScale);
-    QRectF r = painter->transform().inverted().mapRect(rect);
-    int minX = static_cast<int>(std::floor(r.left() / step));
-    int maxX = static_cast<int>(std::ceil(r.right() / step));
-    int minY = static_cast<int>(std::floor(r.top() / step));
-    int maxY = static_cast<int>(std::ceil(r.bottom() / step));
+void drawGrid(QPainter *painter, const QRectF &rect, const SceneModel* sceneModel) {
+    if (!sceneModel) return;
+
+    // Apply canvas transformation (viewDelta, viewScale)
+    QTransform canvasTransform = sceneModel->canvasToWidgetTransform();
+    painter->setTransform(canvasTransform, true);
+
+    // Get grid step and compute visible area in canvas coordinates
+    double gridStep = sceneModel->gridStep();
+    QRectF visibleCanvasRect = canvasTransform.inverted().mapRect(rect);
+
+    int minX = static_cast<int>(std::floor(visibleCanvasRect.left() / gridStep));
+    int maxX = static_cast<int>(std::ceil(visibleCanvasRect.right() / gridStep));
+    int minY = static_cast<int>(std::floor(visibleCanvasRect.top() / gridStep));
+    int maxY = static_cast<int>(std::ceil(visibleCanvasRect.bottom() / gridStep));
+
+    // Draw vertical lines
     for (int i = minX; i <= maxX; ++i) {
-        double x = i * step;
+        double x = i * gridStep;
         if (i == 0) {
             painter->setPen(QPen(Qt::black, 2));
         } else if (i % 10 == 0) {
@@ -51,10 +60,12 @@ void drawGrid(QPainter *painter, const QRectF &rect, double step, const QPointF 
         } else {
             painter->setPen(QPen(QColor(220, 220, 220), 1));
         }
-        painter->drawLine(QLineF(x, r.top(), x, r.bottom()));
+        painter->drawLine(QLineF(x, visibleCanvasRect.top(), x, visibleCanvasRect.bottom()));
     }
+
+    // Draw horizontal lines
     for (int j = minY; j <= maxY; ++j) {
-        double y = j * step;
+        double y = j * gridStep;
         if (j == 0) {
             painter->setPen(QPen(Qt::black, 2));
         } else if (j % 10 == 0) {
@@ -64,7 +75,7 @@ void drawGrid(QPainter *painter, const QRectF &rect, double step, const QPointF 
         } else {
             painter->setPen(QPen(QColor(220, 220, 220), 1));
         }
-        painter->drawLine(QLineF(r.left(), y, r.right(), y));
+        painter->drawLine(QLineF(visibleCanvasRect.left(), y, visibleCanvasRect.right(), y));
     }
 }
 
@@ -143,7 +154,9 @@ static void computeRepellingOffsets(const UiModel* model, std::map<int, double>&
     }
 }
 
-void drawEdges(QPainter *painter, const UiModel *model, double step) {
+void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel) {
+    if (!sceneModel) return;
+
     std::map<int, double> edgeOffset;
     computeRepellingOffsets(model, edgeOffset);
 
@@ -159,8 +172,9 @@ void drawEdges(QPainter *painter, const UiModel *model, double step) {
         auto to = locations.find(edge.toLocation);
 
         if (from != locations.end() && to != locations.end()) {
-            QPointF p1(from.value().coordX * step, from.value().coordY * step);
-            QPointF p2(to.value().coordX * step, to.value().coordY * step);
+            // Convert scene coordinates to canvas coordinates
+            QPointF p1 = sceneModel->sceneToCanvas(QPointF(from.value().coordX, from.value().coordY));
+            QPointF p2 = sceneModel->sceneToCanvas(QPointF(to.value().coordX, to.value().coordY));
 
             double offset = edgeOffset[i];
             // Flip offset for reverse direction
@@ -177,10 +191,14 @@ void drawEdges(QPainter *painter, const UiModel *model, double step) {
     }
 }
 
-void drawLocations(QPainter *painter, const UiModel *model, double step, int idOffsetY, int labelOffsetY, int hoveredLocationId) {
+void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int hoveredLocationId) {
+    if (!sceneModel) return;
+
     for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
         const auto& loc = it.value();
-        QPointF pos(loc.coordX * step, loc.coordY * step);
+        // Convert scene coordinates to canvas coordinates
+        QPointF pos = sceneModel->sceneToCanvas(QPointF(loc.coordX, loc.coordY));
+
         // Draw color circle if color is set
         if (loc.color >= 0 && loc.color < LOCATION_COLOR_COUNT) {
             painter->setPen(QPen(LOCATION_COLOR_PALETTE[loc.color], 4));
@@ -272,10 +290,12 @@ void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, co
     }
 }
 
-// Returns true if the given scene point is within radius of the location's position
-bool isPointOnLocation(const QPointF& scenePoint, const tge::domain::LocationDef& loc, double step, double radius) {
-    QPointF pos(loc.coordX * step, loc.coordY * step);
-    return QLineF(scenePoint, pos).length() <= radius;
+// Returns true if the given canvas point is within radius of the location's position
+bool isPointOnLocation(const QPointF& canvasPoint, const tge::domain::LocationDef& loc, const SceneModel* sceneModel, double radius) {
+    if (!sceneModel) return false;
+    // Convert location's scene coordinates to canvas coordinates
+    QPointF locCanvasPos = sceneModel->sceneToCanvas(QPointF(loc.coordX, loc.coordY));
+    return QLineF(canvasPoint, locCanvasPos).length() <= radius;
 }
 
 QString firstDescription(const tge::domain::LocationDef& loc) {
@@ -295,27 +315,23 @@ QString locationTypeToString(tge::domain::LocationType type, bool lower) {
     return lower ? s.toLower() : s;
 }
 
-int findLocationAtMouse(const UiModel* model, const QPoint& mousePos, const QPointF& viewDelta, double viewScale, double step) {
-    if (!model) return -1;
-    QTransform t;
-    t.translate(viewDelta.x(), viewDelta.y());
-    t.scale(viewScale, viewScale);
-    QPointF mouseScene = t.inverted().map(mousePos);
+int findLocationAtMouse(const UiModel* model, const QPoint& mousePos, const SceneModel* sceneModel) {
+    if (!model || !sceneModel) return -1;
+    // Convert widget coordinates to canvas coordinates
+    QPointF canvasPos = sceneModel->widgetToCanvas(mousePos);
     for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
         int id = it.key();
         const auto& loc = it.value();
-        if (isPointOnLocation(mouseScene, loc, step)) {
+        if (isPointOnLocation(canvasPos, loc, sceneModel)) {
             return id;
         }
     }
     return -1;
 }
 
-QPointF mouseToScene(const QPoint& mousePos, const QPointF& viewDelta, double viewScale) {
-    QTransform t;
-    t.translate(viewDelta.x(), viewDelta.y());
-    t.scale(viewScale, viewScale);
-    return t.inverted().map(mousePos);
+QPointF mouseToScene(const QPoint& mousePos, const SceneModel* sceneModel) {
+    if (!sceneModel) return QPointF();
+    return sceneModel->widgetToScene(mousePos);
 }
 
 void editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::function<void()> onUpdate) {

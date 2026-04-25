@@ -26,8 +26,6 @@ GraphWidget::GraphWidget(QWidget *parent)
     setTransformationAnchor(QGraphicsView::AnchorUnderMouse);
     setInteractive(false);
     setFocusPolicy(Qt::StrongFocus); // Accept key events
-    viewDelta = QPointF(0, 0);
-    viewScale = 1.0;
     rightButtonPressed = false;
     draggingDot = -1;
     model = nullptr;
@@ -40,10 +38,12 @@ GraphWidget::GraphWidget(QWidget *parent)
 void GraphWidget::centerOnObservedVirtualPoint()
 {
     if (model) {
-        double step = gridSettings.scale;
-        QPointF center(viewport()->width() / 2.0, viewport()->height() / 2.0);
-        QPointF virtualScene(model->observedVirtualPoint.x() * step, model->observedVirtualPoint.y() * step);
-        viewDelta = center - virtualScene;
+        QPointF sceneCenter = model->sceneModel.sceneCenteredPoint();
+        double gridStep = model->sceneModel.gridStep();
+        QPointF canvasCenter = model->sceneModel.sceneToCanvas(sceneCenter);
+        QPointF viewportCenter(viewport()->width() / 2.0, viewport()->height() / 2.0);
+        QPointF delta = viewportCenter - canvasCenter;
+        model->sceneModel.setViewDelta(delta);
         viewport()->update();
     }
 }
@@ -52,6 +52,9 @@ void GraphWidget::setModel(UiModel *m, const AppearanceSettings& appearance)
 {
     model = m;
     appearanceSettings = appearance;
+    if (model) {
+        model->sceneModel.setGridStep(100.0); // Default grid step
+    }
     centerOnObservedVirtualPoint();
 }
 
@@ -84,19 +87,17 @@ void GraphWidget::finishEdgeCreation(int destinationLocationId) { graphwidget_ed
 void GraphWidget::mousePressEvent(QMouseEvent *event)
 {
     if (edgeCreationState == EdgeCreationState::SelectSource && event->button() == Qt::LeftButton && model) {
-        double step = gridSettings.scale;
-        int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), viewDelta, viewScale, step);
+        int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), &model->sceneModel);
         if (id != -1) {
             edgeSourceLocationId = id;
             edgeCreationState = EdgeCreationState::SelectDestination;
-            edgeTempTarget = graphwidget_helpers::mouseToScene(event->pos(), viewDelta, viewScale);
+            edgeTempTarget = graphwidget_helpers::mouseToScene(event->pos(), &model->sceneModel);
             viewport()->update();
             event->accept();
             return;
         }
     } else if (edgeCreationState == EdgeCreationState::SelectDestination && event->button() == Qt::LeftButton && model) {
-        double step = gridSettings.scale;
-        int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), viewDelta, viewScale, step);
+        int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), &model->sceneModel);
         if (id != -1 && id != edgeSourceLocationId) {
             finishEdgeCreation(id);
             event->accept();
@@ -113,9 +114,8 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         graphwidget_locations::handleNewLocationMode(this, event);
         return;
     }
-    double step = gridSettings.scale;
     if (event->button() == Qt::MiddleButton && model) {
-        int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), viewDelta, viewScale, step);
+        int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), &model->sceneModel);
         if (id != -1) {
             graphwidget_locations::handleLocationEdit(this, id);
             event->accept();
@@ -130,13 +130,16 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         return;
     }
     if (event->button() == Qt::LeftButton && model) {
-        QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), viewDelta, viewScale);
+        QPointF mouseCanvas = model->sceneModel.widgetToCanvas(event->pos());
+        QPointF mouseScene = model->sceneModel.canvasToScene(mouseCanvas);
         for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
             int id = it.key();
             const auto& loc = it.value();
-            if (graphwidget_helpers::isPointOnLocation(mouseScene, loc, step)) {
+            if (graphwidget_helpers::isPointOnLocation(
+            mouseCanvas,
+                loc, &model->sceneModel)) {
                 draggingDot = id;
-                dragOffset = mouseScene - QPointF(loc.coordX * step, loc.coordY * step);
+                dragOffset = mouseScene - QPointF(loc.coordX, loc.coordY);
                 setCursor(Qt::OpenHandCursor);
                 event->accept();
                 return;
@@ -155,7 +158,10 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
     if (rightButtonPressed)
     {
       QPoint delta = event->pos() - lastMousePos;
-      viewDelta += QPointF(delta.x(), delta.y());
+      if (model) {
+          QPointF currentDelta = model->sceneModel.viewDelta();
+          model->sceneModel.setViewDelta(currentDelta + QPointF(delta.x(), delta.y()));
+      }
       lastMousePos = event->pos();
       viewport()->update();
       event->accept();
@@ -169,15 +175,13 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
     // Hover detection
     int newHovered = -1;
     if (model) {
-        QTransform t;
-        t.translate(viewDelta.x(), viewDelta.y());
-        t.scale(viewScale, viewScale);
-        QPointF mouseScene = t.inverted().map(event->pos());
-        double step = gridSettings.scale;
+        QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), &model->sceneModel);
         for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
             int id = it.key();
             const auto& loc = it.value();
-            if (graphwidget_helpers::isPointOnLocation(mouseScene, loc, step)) {
+            if (graphwidget_helpers::isPointOnLocation(
+                model->sceneModel.sceneToCanvas(QPointF(loc.coordX, loc.coordY)),
+                loc, &model->sceneModel)) {
                 newHovered = id;
                 break;
             }
@@ -188,7 +192,7 @@ void GraphWidget::mouseMoveEvent(QMouseEvent *event)
         viewport()->update();
     }
     if (edgeCreationState == EdgeCreationState::SelectDestination) {
-        edgeTempTarget = graphwidget_helpers::mouseToScene(event->pos(), viewDelta, viewScale);
+        edgeTempTarget = graphwidget_helpers::mouseToScene(event->pos(), &model->sceneModel);
         viewport()->update();
         event->accept();
         return;
@@ -205,7 +209,6 @@ void GraphWidget::mouseReleaseEvent(QMouseEvent *event)
         return;
     }
     if (event->button() == Qt::LeftButton && draggingDot != -1 && model) {
-        double step = gridSettings.scale;
         // Snap to grid
         model->gameDef.locations[draggingDot].coordX = std::round(model->gameDef.locations[draggingDot].coordX);
         model->gameDef.locations[draggingDot].coordY = std::round(model->gameDef.locations[draggingDot].coordY);
@@ -222,10 +225,13 @@ void GraphWidget::wheelEvent(QWheelEvent *event)
 {
     // Custom zoom
     const double scaleFactor = 1.15;
-    if (event->angleDelta().y() > 0) {
-        viewScale *= scaleFactor;
-    } else {
-        viewScale /= scaleFactor;
+    if (model) {
+        double currentScale = model->sceneModel.viewScale();
+        if (event->angleDelta().y() > 0) {
+            model->sceneModel.setViewScale(currentScale * scaleFactor);
+        } else {
+            model->sceneModel.setViewScale(currentScale / scaleFactor);
+        }
     }
     viewport()->update();
 }
@@ -234,14 +240,17 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
 {
     painter->save();
     painter->setRenderHint(QPainter::Antialiasing);
-    graphwidget_helpers::drawGrid(painter, rect, gridSettings.scale, viewDelta, viewScale);
     if (model) {
-        graphwidget_helpers::drawEdges(painter, model, gridSettings.scale);
-        graphwidget_helpers::drawLocations(painter, model, gridSettings.scale, appearanceSettings.idOffsetY, appearanceSettings.labelOffsetY, hoveredLocationId);
+        graphwidget_helpers::drawGrid(painter, rect, &model->sceneModel);
+        graphwidget_helpers::drawEdges(painter, model, &model->sceneModel);
+        graphwidget_helpers::drawLocations(painter, model, &model->sceneModel,
+                                           appearanceSettings.idOffsetY,
+                                           appearanceSettings.labelOffsetY,
+                                           hoveredLocationId);
         // Draw memo on top if hovering
         if (hoveredLocationId != -1) {
             painter->save();
-            painter->resetTransform(); // Draw memo in viewport coordinates
+            painter->resetTransform(); // Draw memo in widget coordinates
             const auto& loc = model->gameDef.locations[hoveredLocationId];
             QString typeStr = graphwidget_helpers::locationTypeToString(loc.type, true);
             QString desc = graphwidget_helpers::firstDescription(loc);
@@ -258,15 +267,14 @@ void GraphWidget::paintEvent(QPaintEvent *event)
     drawBackground(&painter, viewport()->rect());
     // Draw temporary edge if in SelectDestination
     if (edgeCreationState == EdgeCreationState::SelectDestination && model && edgeSourceLocationId != -1) {
-        double step = gridSettings.scale;
         const auto& locations = model->gameDef.locations;
         auto it = locations.find(edgeSourceLocationId);
         if (it != locations.end()) {
-            QPointF from(it.value().coordX * step, it.value().coordY * step);
-            QPointF to = edgeTempTarget;
+            // Convert scene coordinates to canvas coordinates
+            QPointF from = model->sceneModel.sceneToCanvas(QPointF(it.value().coordX, it.value().coordY));
+            QPointF to = model->sceneModel.sceneToCanvas(edgeTempTarget);
             painter.save();
-            painter.translate(viewDelta);
-            painter.scale(viewScale, viewScale);
+            painter.setTransform(model->sceneModel.canvasToWidgetTransform(), false);
             painter.setPen(QPen(Qt::darkGreen, 2, Qt::DashLine));
             painter.drawLine(from, to);
             graphwidget_helpers::drawArrowHead(&painter, from, to, 14.0, 14.0);
@@ -285,9 +293,8 @@ void GraphWidget::resizeEvent(QResizeEvent *event)
 
 void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
 {
-    double step = gridSettings.scale;
     if (event->button() == Qt::LeftButton && model) {
-        int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), viewDelta, viewScale, step);
+        int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), &model->sceneModel);
         if (id != -1) {
             graphwidget_locations::handleLocationEdit(this, id);
             event->accept();
@@ -321,8 +328,7 @@ void GraphWidget::keyReleaseEvent(QKeyEvent *event)
     if (event->key() == Qt::Key_Shift && edgeCreationState != EdgeCreationState::None) {
         // If in SelectDestination, try to finish edge creation if cursor is over a location
         if (edgeCreationState == EdgeCreationState::SelectDestination && model) {
-            double step = gridSettings.scale;
-            int id = graphwidget_helpers::findLocationAtMouse(model, memoCursorPos, viewDelta, viewScale, step);
+            int id = graphwidget_helpers::findLocationAtMouse(model, memoCursorPos, &model->sceneModel);
             if (id != -1 && id != edgeSourceLocationId) {
                 finishEdgeCreation(id);
                 event->accept();

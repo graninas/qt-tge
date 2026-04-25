@@ -54,15 +54,8 @@ private:
     void centerOnObservedVirtualPoint();
     void updateCursor();
 
-    struct GridSettings {
-        double scale = 100.0; // Cell size in pixels
-    };
-
-    QPointF viewDelta;  // Accumulated scene shift
-    double viewScale = 1.0; // Accumulated zoom
     bool rightButtonPressed = false;
     QPoint lastMousePos;
-    GridSettings gridSettings;
     AppearanceSettings appearanceSettings;
 
     int draggingDot = -1; // -1: none, 0: dot1, 1: dot2

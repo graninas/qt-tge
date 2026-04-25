@@ -5,10 +5,11 @@
 namespace graphwidget_locations {
 
 void handleNewLocationMode(GraphWidget* w, QMouseEvent* event) {
-    double step = w->gridSettings.scale;
-    QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), w->viewDelta, w->viewScale);
-    int gridX = std::round(mouseScene.x() / step);
-    int gridY = std::round(mouseScene.y() / step);
+    if (!w->model) return;
+
+    QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), &w->model->sceneModel);
+    int gridX = std::round(mouseScene.x());
+    int gridY = std::round(mouseScene.y());
     int newId = -1;
     if constexpr (std::is_member_object_pointer_v<decltype(&UiModel::manager)>) {
         auto& loc = w->model->manager.addLocation(QString(), 0, gridX, gridY);
@@ -28,14 +29,12 @@ void handleNewLocationMode(GraphWidget* w, QMouseEvent* event) {
 }
 
 void handleLocationDrag(GraphWidget* w, QMouseEvent* event) {
-    QTransform t;
-    t.translate(w->viewDelta.x(), w->viewDelta.y());
-    t.scale(w->viewScale, w->viewScale);
-    QPointF mouseScene = t.inverted().map(event->pos());
-    double step = w->gridSettings.scale;
+    if (!w->model) return;
+
+    QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), &w->model->sceneModel);
     QPointF newPos = mouseScene - w->dragOffset;
-    w->model->gameDef.locations[w->draggingDot].coordX = newPos.x() / step;
-    w->model->gameDef.locations[w->draggingDot].coordY = newPos.y() / step;
+    w->model->gameDef.locations[w->draggingDot].coordX = newPos.x();
+    w->model->gameDef.locations[w->draggingDot].coordY = newPos.y();
     w->viewport()->update();
     event->accept();
 }
@@ -43,15 +42,13 @@ void handleLocationDrag(GraphWidget* w, QMouseEvent* event) {
 void handleLocationHover(GraphWidget* w, QMouseEvent* event) {
     int newHovered = -1;
     if (w->model) {
-        QTransform t;
-        t.translate(w->viewDelta.x(), w->viewDelta.y());
-        t.scale(w->viewScale, w->viewScale);
-        QPointF mouseScene = t.inverted().map(event->pos());
-        double step = w->gridSettings.scale;
+        QPointF mouseScene = graphwidget_helpers::mouseToScene(event->pos(), &w->model->sceneModel);
         for (auto it = w->model->gameDef.locations.constBegin(); it != w->model->gameDef.locations.constEnd(); ++it) {
             int id = it.key();
             const auto& loc = it.value();
-            if (graphwidget_helpers::isPointOnLocation(mouseScene, loc, step)) {
+            if (graphwidget_helpers::isPointOnLocation(
+                w->model->sceneModel.sceneToCanvas(QPointF(loc.coordX, loc.coordY)),
+                loc, &w->model->sceneModel)) {
                 newHovered = id;
                 break;
             }

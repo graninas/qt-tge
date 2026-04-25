@@ -15,7 +15,7 @@ UiModel UiModel::makeTestGraph() {
     auto& loc3 = mgr.addLocation("Intermediate2", 2, 3, 0);
     // Location 4: Finish
     auto& loc4 = mgr.addFinishLocation("Finish", 4, 0);
-    model.observedVirtualPoint = QPointF(loc1.coordX, loc1.coordY);
+    model.sceneModel.setSceneCenteredPoint(QPointF(loc1.coordX, loc1.coordY));
     // Edge: start -> inter1
     mgr.addEdge(loc1.id, loc2.id, "", "");
     if (mgr.hasError()) qWarning() << "Demo graph error:" << mgr.lastError();
