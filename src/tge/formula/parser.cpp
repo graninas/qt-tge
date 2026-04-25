@@ -1,25 +1,14 @@
 #include "parser.h"
 
-#include <stdexcept>
 #include <cctype>
-#include <string>
-#include <sstream>
-#include <variant>
-#include <iostream>
-#include <vector>
-#include <map>
-#include <list>
-#include <tuple>
-#include <functional>
-#include <algorithm>
+#include <cstring>
 #include <random>
-
-#include "ps/free_parsec.h"
+#include <stdexcept>
+#include <string>
 
 namespace tge {
 namespace formula {
 
-// Define the Abstract Syntax Tree (AST) for the custom language
 struct ASTNode
 {
   enum class Type
@@ -40,181 +29,266 @@ struct ASTNode
   ASTNode(Type t, int num) : type(t), number(num) {}
 };
 
-ps::Parser<std::string> parameterIdentifier()
+static std::shared_ptr<ASTNode> makeOp(
+    const std::string &op,
+    const std::shared_ptr<ASTNode> &left,
+    const std::shared_ptr<ASTNode> &right)
 {
-  using namespace ps;
-  Parser<char> firstChar = alt(upper, lower);
-  Parser<std::list<char>> restChars = many(alphanum);
-  auto seqp = sequence(firstChar, restChars);
-  return merge(seqp);
+  auto node = std::make_shared<ASTNode>(ASTNode::Type::Operator, op);
+  node->left = left;
+  node->right = right;
+  return node;
 }
 
-// Parser for the custom language
-
-ps::Parser<std::shared_ptr<ASTNode>> expressionParser();
-
-ps::Parser<std::shared_ptr<ASTNode>> parensParser()
+class ExpressionParser
 {
-  using namespace ps;
+public:
+  explicit ExpressionParser(const std::string &src) : input(src), pos(0) {}
 
-  Parser<std::shared_ptr<ASTNode>> parser =
-      between(
-          parseChar('('),
-          expressionParser(),
-          parseChar(')')) +
-      "parens";
+  std::shared_ptr<ASTNode> parse()
+  {
+    auto ast = parseOrExpr();
+    skipSpaces();
+    if (!eof())
+    {
+      throwParseError("Unexpected token");
+    }
+    return ast;
+  }
 
-  return parser;
-}
+private:
+  const std::string &input;
+  std::size_t pos;
 
-ps::Parser<std::shared_ptr<ASTNode>> parameterParser()
-{
-  using namespace ps;
-  return fmap<std::string, std::shared_ptr<ASTNode>>(
-      [](const std::string &param)
+  [[noreturn]] void throwParseError(const std::string &msg) const
+  {
+    throw std::runtime_error("Parse error at position " + std::to_string(pos) + ": " + msg);
+  }
+
+  bool eof() const
+  {
+    return pos >= input.size();
+  }
+
+  void skipSpaces()
+  {
+    while (!eof() && std::isspace(static_cast<unsigned char>(input[pos])))
+    {
+      ++pos;
+    }
+  }
+
+  bool matchChar(char ch)
+  {
+    skipSpaces();
+    if (!eof() && input[pos] == ch)
+    {
+      ++pos;
+      return true;
+    }
+    return false;
+  }
+
+  void expectChar(char ch)
+  {
+    if (!matchChar(ch))
+    {
+      throwParseError(std::string("Expected '") + ch + "'");
+    }
+  }
+
+  bool matchText(const char *text)
+  {
+    skipSpaces();
+    const std::size_t n = std::strlen(text);
+    if (input.compare(pos, n, text) == 0)
+    {
+      pos += n;
+      return true;
+    }
+    return false;
+  }
+
+  std::shared_ptr<ASTNode> parseOrExpr()
+  {
+    auto left = parseAndExpr();
+    while (matchText("or"))
+    {
+      left = makeOp("or", left, parseAndExpr());
+    }
+    return left;
+  }
+
+  std::shared_ptr<ASTNode> parseAndExpr()
+  {
+    auto left = parseComparisonExpr();
+    while (matchText("and"))
+    {
+      left = makeOp("and", left, parseComparisonExpr());
+    }
+    return left;
+  }
+
+  std::shared_ptr<ASTNode> parseComparisonExpr()
+  {
+    auto left = parseRangeExpr();
+    while (true)
+    {
+      if (matchText(">="))
       {
-        return std::make_shared<ASTNode>(ASTNode::Type::Parameter, param);
-      },
-      between(parseChar('['), parameterIdentifier(), parseChar(']')))
-      + "param";
-}
-
-ps::Parser<std::shared_ptr<ASTNode>> numberParser()
-{
-  using namespace ps;
-  return fmap<int, std::shared_ptr<ASTNode>>(
-      [](int num)
+        left = makeOp(">=", left, parseRangeExpr());
+      }
+      else if (matchText("<="))
       {
-        return std::make_shared<ASTNode>(ASTNode::Type::Number, num);
-      },
-      mergeTo<int>(many1(digit)))
-      + "number";
-}
-
-ps::Parser<std::shared_ptr<ASTNode>> negParser()
-{
-  using namespace ps;
-  // Parses neg(expr) and returns a unary negation node
-  return fmap<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>(
-      [](const std::shared_ptr<ASTNode> &operand)
+        left = makeOp("<=", left, parseRangeExpr());
+      }
+      else if (matchText("=="))
       {
-        auto node = std::make_shared<ASTNode>(ASTNode::Type::Operator, "neg");
-        node->left = operand;
-        return node;
-      },
-      between(parseLit("neg("), expressionParser(), parseChar(')')))
-      + "neg";
-}
-
-ps::Parser<std::shared_ptr<ASTNode>> rndParser()
-{
-  using namespace ps;
-  // Parses rnd(from, toExcluding)
-  auto seqp = sequence(
-      skip(parseLit("rnd(")),
-      expressionParser(),
-      skip(parseChar(',')),
-      expressionParser(),
-      skip(parseChar(')')));
-
-  return fmap<
-      std::tuple<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>,
-      std::shared_ptr<ASTNode>>(
-      [](const std::tuple<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>> &t)
+        left = makeOp("==", left, parseRangeExpr());
+      }
+      else if (matchText("!="))
       {
-        auto node = std::make_shared<ASTNode>(ASTNode::Type::Operator, "rnd");
-        node->left = std::get<0>(t);
-        node->right = std::get<1>(t);
-        return node;
-      },
-      seqp) + "rnd";
-}
-
-ps::Parser<std::shared_ptr<ASTNode>> termParser()
-{
-  using namespace ps;
-  return alt(try_(negParser()),
-             alt(try_(rndParser()),
-                 alt(try_(numberParser()),
-                     alt(try_(parameterParser()), parensParser()))));
-}
-
-ps::Parser<std::shared_ptr<ASTNode>> operatorParser()
-{
-  using namespace ps;
-  return fmap<std::string, std::shared_ptr<ASTNode>>(
-      [](const std::string &op)
+        left = makeOp("!=", left, parseRangeExpr());
+      }
+      else if (matchText(">"))
       {
-        return std::make_shared<ASTNode>(ASTNode::Type::Operator, op);
-      },
-      // longer operators first to avoid prefix conflicts
-      choice(parseLit(">=") + "ge",
-             parseLit("<=") + "le",
-             parseLit("==") + "eq",
-             parseLit("!=") + "ne",
-            //  parseLit("<>") + "ne2",
-             parseLit(">") + "gt",
-             parseLit("<") + "lt",
-            //  parseLit("=") + "eq2",
-             parseLit("+") + "add",
-             parseLit("-") + "sub",
-             parseLit("*") + "mul",
-             parseLit("/") + "divop",
-             parseLit("div") + "div",
-             parseLit("mod") + "mod",
-             parseLit("and") + "and",
-             parseLit("or") + "or",
-             parseLit("to") + "to",
-             parseLit("in") + "in"))
-      + "op";
-}
-
-ps::Parser<std::shared_ptr<ASTNode>> operatorParensExprParser()
-{
-  using namespace ps;
-
-  auto seqp = sequence(
-      skip(parseChar('(')),
-      expressionParser(),
-      operatorParser(),
-      expressionParser(),
-      skip(parseChar(')')))
-      + "operator expr";
-
-  Parser<std::shared_ptr<ASTNode>> mappedSeqp = fmap<
-      std::tuple<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>>,
-      std::shared_ptr<ASTNode>>(
-      [](const std::tuple<std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>, std::shared_ptr<ASTNode>> &t)
+        left = makeOp(">", left, parseRangeExpr());
+      }
+      else if (matchText("<"))
       {
-        auto left = std::get<0>(t);
-        auto op = std::get<1>(t);
-        auto right = std::get<2>(t);
-
-        // Set the left and right children of the operator node
-        op->left = left;
-        op->right = right;
-
-        return op;
-      },
-      seqp);
-  return mappedSeqp;
-}
-
-
-
-ps::Parser<std::shared_ptr<ASTNode>> expressionParser()
-{
-  using namespace ps;
-
-  // Define the parser lazily to handle recursion
-  return lazy<std::shared_ptr<ASTNode>>(
-      []()
+        left = makeOp("<", left, parseRangeExpr());
+      }
+      else if (matchText("in"))
       {
-        return alt(
-            try_(operatorParensExprParser()),
-            termParser());
-      });
-}
+        left = makeOp("in", left, parseRangeExpr());
+      }
+      else
+      {
+        break;
+      }
+    }
+    return left;
+  }
+
+  std::shared_ptr<ASTNode> parseRangeExpr()
+  {
+    auto left = parseAdditiveExpr();
+    while (matchText("to"))
+    {
+      left = makeOp("to", left, parseAdditiveExpr());
+    }
+    return left;
+  }
+
+  std::shared_ptr<ASTNode> parseAdditiveExpr()
+  {
+    auto left = parseMultiplicativeExpr();
+    while (true)
+    {
+      if (matchChar('+'))
+      {
+        left = makeOp("+", left, parseMultiplicativeExpr());
+      }
+      else if (matchChar('-'))
+      {
+        left = makeOp("-", left, parseMultiplicativeExpr());
+      }
+      else
+      {
+        break;
+      }
+    }
+    return left;
+  }
+
+  std::shared_ptr<ASTNode> parseMultiplicativeExpr()
+  {
+    auto left = parsePrimaryExpr();
+    while (true)
+    {
+      if (matchChar('*'))
+      {
+        left = makeOp("*", left, parsePrimaryExpr());
+      }
+      else if (matchChar('/'))
+      {
+        left = makeOp("/", left, parsePrimaryExpr());
+      }
+      else if (matchText("div"))
+      {
+        left = makeOp("div", left, parsePrimaryExpr());
+      }
+      else if (matchText("mod"))
+      {
+        left = makeOp("mod", left, parsePrimaryExpr());
+      }
+      else
+      {
+        break;
+      }
+    }
+    return left;
+  }
+
+  std::shared_ptr<ASTNode> parsePrimaryExpr()
+  {
+    if (matchChar('('))
+    {
+      auto expr = parseOrExpr();
+      expectChar(')');
+      return expr;
+    }
+
+    if (matchText("neg("))
+    {
+      auto operand = parseOrExpr();
+      expectChar(')');
+      return makeOp("neg", operand, nullptr);
+    }
+
+    if (matchText("rnd("))
+    {
+      auto from = parseOrExpr();
+      expectChar(',');
+      auto toExcluding = parseOrExpr();
+      expectChar(')');
+      return makeOp("rnd", from, toExcluding);
+    }
+
+    if (matchChar('['))
+    {
+      skipSpaces();
+      if (eof() || !std::isalpha(static_cast<unsigned char>(input[pos])))
+      {
+        throwParseError("Expected parameter identifier");
+      }
+
+      std::string ident;
+      ident.push_back(input[pos++]);
+      while (!eof() && std::isalnum(static_cast<unsigned char>(input[pos])))
+      {
+        ident.push_back(input[pos++]);
+      }
+
+      expectChar(']');
+      return std::make_shared<ASTNode>(ASTNode::Type::Parameter, ident);
+    }
+
+    skipSpaces();
+    if (!eof() && std::isdigit(static_cast<unsigned char>(input[pos])))
+    {
+      std::size_t start = pos;
+      while (!eof() && std::isdigit(static_cast<unsigned char>(input[pos])))
+      {
+        ++pos;
+      }
+      int value = std::stoi(input.substr(start, pos - start));
+      return std::make_shared<ASTNode>(ASTNode::Type::Number, value);
+    }
+
+    throwParseError("Expected primary expression");
+  }
+};
 
 // Evaluate the AST using the parameter map
 int evaluateAST(const std::shared_ptr<ASTNode> &node, const std::map<std::string, int> &params)
@@ -370,28 +444,8 @@ int evaluateAST(const std::shared_ptr<ASTNode> &node, const std::map<std::string
 
 int parseAndEvaluateExpression(const std::string &src, const std::map<std::string, int> &params)
 {
-  using namespace ps;
-
-  std::string noSpaces;
-  for (char c : src) {
-    if (!std::isspace(static_cast<unsigned char>(c))) {
-      noSpaces += c;
-    }
-  }
-  const std::string input = "(" + noSpaces + ")"; // Wrap the input in parentheses to ensure it matches the operator expression format
-
-
-  ParserRuntime runtime(input, State{});
-  Parser<std::shared_ptr<ASTNode>> parser = expressionParser();
-
-  ParserResult<std::shared_ptr<ASTNode>> result = parseWithRuntime(runtime, parser);
-
-  if (!isRight(result)) {
-    // Get error info if available
-    throw std::runtime_error("Parse error");
-  }
-
-  std::shared_ptr<ASTNode> ast = getParseSucceeded(result).parsed;
+  ExpressionParser parser(src);
+  std::shared_ptr<ASTNode> ast = parser.parse();
   return evaluateAST(ast, params);
 }
 

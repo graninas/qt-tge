@@ -86,6 +86,21 @@ int main() {
         // --- Expressions from the documentation ---
         // ([p5] div 30)+1 with P3=30: (30 div 30)+1 = 2
         {"(([P3] div 30)+1)", 2},
+
+        // --- No mandatory parentheses + precedence ---
+        {"3 + 5 * 2", 13},
+        {"10 - 2 * 3", 4},
+        {"[P1] + [P2] * [P4]", 25},
+        {"1 or 0 and 0", 1},
+        {"3 + 5 * 2 == 13", 1},
+
+        // --- Ambiguous cases: precedence/associativity ---
+        {"(1 or 0) and 0", 0},          // parentheses override and/or precedence
+        {"10 - 3 - 2", 5},              // left-associative subtraction: (10-3)-2
+        {"20 div 3 * 2", 12},           // left-associative multiplicative ops: (20 div 3)*2
+        {"[P1] in 1 to 10", 1},         // in binds after range construction (to)
+        {"[P1] in 1 to 10 and 0", 0},   // in result participates in logical and
+        {"1 < 2 < 3", 1},               // current behavior: chained comparisons are left-associative
     };
     for (const auto& f : formulas) {
         run_test(f);
@@ -95,6 +110,8 @@ int main() {
     run_test_expect_error("(10 div 0)");
     run_test_expect_error("(10 mod 0)");
     run_test_expect_error("(10 / 0)");
+    run_test_expect_error("1 to 3");
+    run_test_expect_error("1 and or 0");
 
     // --- rnd(from, toExcluding) ---
     // Run many times and check range [1, 6)
