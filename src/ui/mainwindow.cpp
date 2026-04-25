@@ -1,10 +1,10 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
 #include "graphwidget.h"
-#include "gui_model.h"
+#include "globalvariablesdialog.h"
+
 #include <QToolBar>
 #include <QToolButton>
-#include <QIcon>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -15,24 +15,44 @@ MainWindow::MainWindow(QWidget *parent)
     graphWidget = new GraphWidget(this);
     setCentralWidget(graphWidget);
 
-    static UiModel model = UiModel::makeTestGame();
-    graphWidget->setModel(&model);
+    static UiModel staticModel = UiModel::makeTestGame();
+    model = &staticModel;
+    graphWidget->setModel(model);
 
     // Toolbox setup
     QToolBar *toolBar = new QToolBar("Toolbox", this);
     addToolBar(Qt::LeftToolBarArea, toolBar);
+
     newLocationButton = new QToolButton(this);
     newLocationButton->setText("New Location");
     newLocationButton->setCheckable(true);
     newLocationButton->setToolTip("Add new location");
     toolBar->addWidget(newLocationButton);
     connect(newLocationButton, &QToolButton::clicked, this, &MainWindow::onNewLocationMode);
+
+    globalVariablesButton = new QToolButton(this);
+    globalVariablesButton->setText("Global Variables");
+    globalVariablesButton->setToolTip("Edit global variable definitions");
+    toolBar->addWidget(globalVariablesButton);
+    connect(globalVariablesButton, &QToolButton::clicked, this, &MainWindow::onEditGlobalVariables);
 }
 
 void MainWindow::onNewLocationMode()
 {
-    bool enabled = newLocationButton->isChecked();
+    const bool enabled = newLocationButton->isChecked();
     graphWidget->setNewLocationMode(enabled);
+}
+
+void MainWindow::onEditGlobalVariables()
+{
+    if (!model) {
+        return;
+    }
+
+    GlobalVariablesDialog dlg(model->gameDef.globalVariables, this);
+    if (dlg.exec() == QDialog::Accepted) {
+        graphWidget->viewport()->update();
+    }
 }
 
 MainWindow::~MainWindow()

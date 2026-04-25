@@ -40,8 +40,8 @@ UiModel UiModel::makeTestGame()
   model.gameDef.description = "Small demo graph with conditions, variables and a service-loop.";
 
   // Global integer parameters used in edge conditions.
-  model.gameDef.globalVariables.append({"P1", VarType::Integer, "0", ""}); // Has access card
-  model.gameDef.globalVariables.append({"P2", VarType::Integer, "3", ""}); // Energy level
+  model.gameDef.globalVariables.append({"P1", "HasAccessCard", "1 when player has an access card.", VarType::Integer, "0"});
+  model.gameDef.globalVariables.append({"P2", "Energy", "Current station energy level.", VarType::Integer, "3"});
 
   auto &startLoc = mgr.addStartLocation("Airlock", 0, 0);
   auto &hallLoc = mgr.addLocation("Security Hall", 2, 2, 0);

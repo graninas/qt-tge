@@ -21,8 +21,8 @@ find_package(Qt5 REQUIRED COMPONENTS Widgets Core Gui)
 set(UI_FILES src/ui/mainwindow.ui)
 
 # Sources
-set(SOURCES src/main.cpp src/ui/mainwindow.cpp src/ui/graphwidget.cpp src/ui/graphwidget_edges.cpp src/ui/graphwidget_locations.cpp src/ui/gui_model.cpp src/ui/graphwidget_helpers.cpp src/ui/locationdialog.cpp src/ui/edgedialog.cpp src/ui/edgelistitemwidget.cpp src/ui/graphwidget_errors.cpp)
-set(HEADERS src/ui/mainwindow.h src/ui/graphwidget.h src/ui/edgedialog.h src/ui/edgelistitemwidget.h)
+set(SOURCES src/main.cpp src/ui/mainwindow.cpp src/ui/graphwidget.cpp src/ui/graphwidget_edges.cpp src/ui/graphwidget_locations.cpp src/ui/gui_model.cpp src/ui/graphwidget_helpers.cpp src/ui/locationdialog.cpp src/ui/edgedialog.cpp src/ui/edgelistitemwidget.cpp src/ui/graphwidget_errors.cpp src/ui/globalvariablesdialog.cpp)
+set(HEADERS src/ui/mainwindow.h src/ui/graphwidget.h src/ui/edgedialog.h src/ui/edgelistitemwidget.h src/ui/globalvariablesdialog.h)
 
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)

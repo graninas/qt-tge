@@ -4,6 +4,8 @@
 #include <QMainWindow>
 #include <QToolButton>
 
+#include "gui_model.h"
+
 namespace Ui {
 class MainWindow;
 }
@@ -20,11 +22,14 @@ public:
 
 private slots:
     void onNewLocationMode();
+    void onEditGlobalVariables();
 
 private:
     Ui::MainWindow *ui;
     GraphWidget *graphWidget; // Pointer to the graph widget
     QToolButton *newLocationButton; // Button for new location mode
+    QToolButton *globalVariablesButton; // Button for global variables editor
+    UiModel *model = nullptr;
 };
 
 #endif // MAINWINDOW_H

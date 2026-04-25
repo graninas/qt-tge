@@ -13,10 +13,11 @@ enum class VarType { Integer };
 
 // Variable definition (static)
 struct VariableDef {
+    QString index; // Identifier: P1, P2, etc.
     QString name;
+    QString description;
     VarType type;
     QString defaultValue; // Default initial value, stored as string and interpreted according to type
-    QString updateRule; // To be defined later
 };
 
 // Selector type
