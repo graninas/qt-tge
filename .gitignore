@@ -50,3 +50,5 @@ mocs_compilation.cpp
 
 CTestTestfile.cmake
 Qt-TGE
+
+Testing/
