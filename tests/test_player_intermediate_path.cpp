@@ -45,13 +45,13 @@ int main(int argc, char *argv[])
 
     // Add locations
     LocationDef& startLoc = manager.addStartLocation("Start", 0, 0);
-    startLoc.descriptionPack.descriptions = {"Start!"};
+    startLoc.description = "Start!";
     LocationDef& interLoc1 = manager.addLocation("Intermediate1", 13, 1, 0);
-    interLoc1.descriptionPack.descriptions = {"Intermediate1!"};
+    interLoc1.description = "Intermediate1!";
     LocationDef& interLoc2 = manager.addLocation("Intermediate2", 14, 2, 0);
-    interLoc2.descriptionPack.descriptions = {"Intermediate2!"};
+    interLoc2.description = "Intermediate2!";
     LocationDef& finishLoc = manager.addFinishLocation("Finish", 3, 0);
-    finishLoc.descriptionPack.descriptions = {"Finish!"};
+    finishLoc.description = "Finish!";
 
     // Edges: start -> inter1, inter1 <-> inter2 (cycle), inter2 -> finish
     auto* edge1 = manager.addEdge(startLoc.id, interLoc1.id, "Go to inter1", "Path 1");

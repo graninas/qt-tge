@@ -430,9 +430,7 @@ bool isPointOnLocation(const QPointF& canvasPoint, const tge::domain::LocationDe
 }
 
 QString firstDescription(const tge::domain::LocationDef& loc) {
-    if (!loc.descriptionPack.descriptions.isEmpty())
-        return loc.descriptionPack.descriptions[0];
-    return QString();
+    return loc.description;
 }
 
 QString locationTypeToString(tge::domain::LocationType type, bool lower) {
@@ -547,10 +545,7 @@ bool editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::fu
     const bool accepted = (dlg.exec() == QDialog::Accepted);
     if (accepted) {
         model->gameDef.locations[locationId].label = dlg.label();
-        auto descs = dlg.descriptions();
-        auto& descPack = model->gameDef.locations[locationId].descriptionPack.descriptions;
-        descPack.clear();
-        for (const auto& d : descs) descPack.append(d);
+        model->gameDef.locations[locationId].description = dlg.description();
     }
     if (onUpdate) onUpdate();
     return accepted;

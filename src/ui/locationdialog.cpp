@@ -8,7 +8,6 @@
 #include <QLineEdit>
 #include <QTextEdit>
 #include <QDialogButtonBox>
-#include <QTabWidget>
 #include <QPushButton>
 #include <QHBoxLayout>
 #include <QListWidget>
@@ -55,26 +54,10 @@ LocationDialog::LocationDialog(tge::domain::LocationDef* loc, Manager* manager, 
     m_labelEdit = new QLineEdit(loc->label, this);
     leftLayout->addWidget(m_labelEdit);
 
-    // Description tabs
-    QHBoxLayout* descBtnLayout = new QHBoxLayout;
-    m_addDescBtn = new QPushButton("+", this);
-    m_removeDescBtn = new QPushButton("-", this);
-    descBtnLayout->addWidget(m_addDescBtn);
-    descBtnLayout->addWidget(m_removeDescBtn);
-    leftLayout->addLayout(descBtnLayout);
-    m_descTabs = new QTabWidget(this);
-    leftLayout->addWidget(m_descTabs);
-    int idx = 1;
-    if (!loc->descriptionPack.descriptions.isEmpty()) {
-        for (const QString& desc : loc->descriptionPack.descriptions) {
-            addDescriptionTab(desc);
-            ++idx;
-        }
-    } else {
-        addDescriptionTab();
-    }
-    connect(m_addDescBtn, &QPushButton::clicked, this, [this]() { addDescriptionTab(); });
-    connect(m_removeDescBtn, &QPushButton::clicked, this, [this]() { removeLastDescriptionTab(); });
+    // Description
+    m_descEdit = new QTextEdit(this);
+    m_descEdit->setPlainText(loc->description);
+    leftLayout->addWidget(m_descEdit);
 
     // --- Edges area ---
     rightLayout->addWidget(new QLabel(tr("Edges (incoming/outgoing):"), this));
@@ -94,30 +77,8 @@ QString LocationDialog::label() const {
     return m_labelEdit->text();
 }
 
-QList<QString> LocationDialog::descriptions() const {
-    QList<QString> result;
-    for (int i = 0; i < m_descTabs->count(); ++i) {
-        QTextEdit* edit = qobject_cast<QTextEdit*>(m_descTabs->widget(i));
-        result.append(edit ? edit->toPlainText() : QString());
-    }
-    return result;
-}
-
-void LocationDialog::addDescriptionTab(const QString& text) {
-    QTextEdit* edit = new QTextEdit(this);
-    edit->setPlainText(text);
-    int idx = m_descTabs->count() + 1;
-    m_descTabs->addTab(edit, tr("Description %1").arg(idx));
-    m_descTabs->setCurrentWidget(edit);
-}
-
-void LocationDialog::removeLastDescriptionTab() {
-    int count = m_descTabs->count();
-    if (count > 1) {
-        QWidget* last = m_descTabs->widget(count - 1);
-        m_descTabs->removeTab(count - 1);
-        delete last;
-    }
+QString LocationDialog::description() const {
+    return m_descEdit->toPlainText();
 }
 
 void LocationDialog::populateEdgeList() {

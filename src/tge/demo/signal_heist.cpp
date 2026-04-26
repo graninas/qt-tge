@@ -105,27 +105,13 @@ UiModel makeSignalHeistGame() {
     auto& goodEndLoc = mgr.addFinishLocation("Extraction Train", 8, 8);
     auto& badEndLoc = mgr.addFinishLocation("Containment Cell", 10, 6);
 
-    startLoc.descriptionPack.descriptions = {
-        "Night rain hides your movement. The only lead is the black market fixer."
-    };
-    marketLoc.descriptionPack.descriptions = {
-        "Vendors whisper about signal boosters and patrol schedules."
-    };
-    towerLoc.descriptionPack.descriptions = {
-        "The relay tower amplifies transmissions, but scanners are active."
-    };
-    archiveLoc.descriptionPack.descriptions = {
-        "Old records hold route keys and maintenance overrides."
-    };
-    hubLoc.descriptionPack.descriptions = {
-        "The transit hub is your launch point: extraction or capture."
-    };
-    goodEndLoc.descriptionPack.descriptions = {
-        "You board the extraction train with a clean signal and disappear into the outskirts."
-    };
-    badEndLoc.descriptionPack.descriptions = {
-        "Security teams triangulate your position and lock you in containment."
-    };
+    startLoc.description = "Night rain hides your movement. The only lead is the black market fixer.";
+    marketLoc.description = "Vendors whisper about signal boosters and patrol schedules.";
+    towerLoc.description = "The relay tower amplifies transmissions, but scanners are active.";
+    archiveLoc.description = "Old records hold route keys and maintenance overrides.";
+    hubLoc.description = "The transit hub is your launch point: extraction or capture.";
+    goodEndLoc.description = "You board the extraction train with a clean signal and disappear into the outskirts.";
+    badEndLoc.description = "Security teams triangulate your position and lock you in containment.";
 
     model.sceneModel.setSceneCenteredPoint(QPointF(startLoc.coordX, startLoc.coordY));
 

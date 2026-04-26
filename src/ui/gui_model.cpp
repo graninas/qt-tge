@@ -50,24 +50,12 @@ UiModel UiModel::makeTestGame()
   auto &reactorLoc = mgr.addLocation("Reactor Room", 8, 4, 2);
   auto &finishLoc = mgr.addFinishLocation("Escape Shuttle", 10, 1);
 
-  startLoc.descriptionPack.descriptions = {
-    "You dock at a damaged station. The only way forward is the security hall."
-  };
-  hallLoc.descriptionPack.descriptions = {
-    "A silent corridor: armory to the east, lab door to the north, reactor warnings to the south."
-  };
-  armoryLoc.descriptionPack.descriptions = {
-    "Old crates and a functional access card terminal."
-  };
-  labLoc.descriptionPack.descriptions = {
-    "The lab contains emergency override controls."
-  };
-  reactorLoc.descriptionPack.descriptions = {
-    "The reactor is unstable. You can try to stabilize it if you have enough energy."
-  };
-  finishLoc.descriptionPack.descriptions = {
-    "You launch the shuttle and escape."
-  };
+  startLoc.description = "You dock at a damaged station. The only way forward is the security hall.";
+  hallLoc.description = "A silent corridor: armory to the east, lab door to the north, reactor warnings to the south.";
+  armoryLoc.description = "Old crates and a functional access card terminal.";
+  labLoc.description = "The lab contains emergency override controls.";
+  reactorLoc.description = "The reactor is unstable. You can try to stabilize it if you have enough energy.";
+  finishLoc.description = "You launch the shuttle and escape.";
 
   model.sceneModel.setSceneCenteredPoint(QPointF(startLoc.coordX, startLoc.coordY));
 

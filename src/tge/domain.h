@@ -23,22 +23,6 @@ struct VariableDef {
     QString defaultValue; // Default initial value, stored as string and interpreted according to type
 };
 
-// Selector type
-enum class SelectorType { Blank, Random, Formula };
-
-// Selector definition
-struct SelectorDef {
-    SelectorType type;
-    QString formula; // Used if type == Formula
-};
-
-// Text description pack
-struct DescriptionPack {
-    QVector<QString> descriptions;
-    SelectorDef selector;
-};
-
-
 // Edge variable setting definition
 struct EdgeVariableSettingDef {
     int variableIndex; // Identifier of the parameter to set, e.g. (P)1
@@ -78,7 +62,7 @@ enum class LocationType { Start, Regular, Service, Finish };
 struct LocationDef {
     int id;
     LocationType type;
-    DescriptionPack descriptionPack;
+    QString description;
     QVector<VariableDef> localVariables;
     QVector<int> outgoingEdges;
     QVector<int> incomingEdges;

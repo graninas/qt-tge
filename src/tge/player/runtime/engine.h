@@ -49,13 +49,11 @@ public:
         if (!m_state.startLocation) return std::nullopt;
         CurrentLocation result;
         result.location = m_state.startLocation;
-        // Get the first description from the pack (no selector logic yet)
-        if (m_state.startLocation->def && !m_state.startLocation->def->descriptionPack.descriptions.isEmpty()) {
-            result.description = m_state.startLocation->def->descriptionPack.descriptions[0];
-            result.debugMessages.append("Selector: not implemented, picked first description.");
+        if (m_state.startLocation->def) {
+            result.description = m_state.startLocation->def->description;
         } else {
             result.description = "";
-            result.debugMessages.append("No descriptions available.");
+            result.debugMessages.append("No location definition available.");
         }
         // Add outgoing edges as options
         for (const auto* edge : m_state.startLocation->outgoingEdges) {
@@ -114,25 +112,15 @@ public:
         if (loc->def->type == domain::LocationType::Finish) {
             FinishLocation finish;
             finish.location = loc;
-            if (!loc->def->descriptionPack.descriptions.isEmpty())
-                finish.description = loc->def->descriptionPack.descriptions[0];
-            else
-                finish.description = "";
+            finish.description = loc->def->description;
             finish.debugMessages = transition.debugMessages;
             finish.debugMessages.append("Arrived at finish location.");
             return finish;
         } else {
             CurrentLocation next;
             next.location = loc;
-            if (!loc->def->descriptionPack.descriptions.isEmpty()) {
-                next.description = loc->def->descriptionPack.descriptions[0];
-                next.debugMessages = transition.debugMessages;
-                next.debugMessages.append("Selector: not implemented, picked first description.");
-            } else {
-                next.description = "";
-                next.debugMessages = transition.debugMessages;
-                next.debugMessages.append("No descriptions available.");
-            }
+            next.description = loc->def->description;
+            next.debugMessages = transition.debugMessages;
             for (const auto* edge : loc->outgoingEdges) {
                 next.options.append(edge);
             }

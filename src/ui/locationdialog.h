@@ -2,7 +2,6 @@
 #include <QDialog>
 #include <QString>
 #include <QListWidget>
-#include <QMap>
 #include "tge/domain.h"
 #include "tge/editor/runtime/manager.h"
 #include <QButtonGroup>
@@ -21,7 +20,6 @@ class Manager;
 
 class QLineEdit;
 class QTextEdit;
-class QTabWidget;
 class QPushButton;
 
 class LocationDialog : public QDialog {
@@ -30,23 +28,18 @@ public:
     LocationDialog(tge::domain::LocationDef* loc, tge::editor::runtime::Manager* manager, QWidget* parent = nullptr);
     QString label() const;
     QString description() const;
-    QList<QString> descriptions() const;
 private slots:
     void onEdgeDeleteRequested(int edgeId);
     void onEdgeItemClicked(QListWidgetItem* item);
     void onColorButtonClicked(int id);
 private:
     QLineEdit* m_labelEdit;
-    QTabWidget* m_descTabs;
-    QPushButton* m_addDescBtn;
-    QPushButton* m_removeDescBtn;
+    QTextEdit* m_descEdit;
     QListWidget* m_edgeListWidget;
     tge::domain::LocationDef* m_location;
     tge::editor::runtime::Manager* m_manager;
     QButtonGroup* m_colorButtonGroup;
     QVector<QPushButton*> m_colorButtons;
-    void addDescriptionTab(const QString& text = QString());
-    void removeLastDescriptionTab();
     void populateEdgeList();
     void setupColorPaletteUI(QVBoxLayout* layout);
     void updateColorSelection();
