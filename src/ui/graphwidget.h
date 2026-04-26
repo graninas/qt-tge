@@ -56,6 +56,7 @@ private:
     void centerOnObservedVirtualPoint();
     void updateCursor();
     void clearSelection();
+    bool deleteSelectionWithConfirmation();
     bool toggleSelectionAtPosition(const QPoint& position);
     bool tryEditEdgeAtPosition(const QPoint& position);
 

@@ -17,6 +17,7 @@
 #include <QApplication>
 #include <QDebug>
 #include <QKeyEvent>
+#include <QMessageBox>
 #include "graphwidget_errors.h"
 
 bool GraphWidget::tryEditEdgeAtPosition(const QPoint& position)
@@ -55,6 +56,48 @@ void GraphWidget::clearSelection()
     model->selectedLocationIds.clear();
     model->selectedEdgeIds.clear();
     emit selectionChanged(model->selectedLocationIds.size(), model->selectedEdgeIds.size());
+}
+
+bool GraphWidget::deleteSelectionWithConfirmation()
+{
+    if (!model) {
+        return false;
+    }
+
+    const int selectedLocationCount = model->selectedLocationIds.size();
+    const int selectedEdgeCount = model->selectedEdgeIds.size();
+    if (selectedLocationCount == 0 && selectedEdgeCount == 0) {
+        return false;
+    }
+
+    const auto answer = QMessageBox::question(
+        this,
+        tr("Delete selected objects"),
+        tr("Are you sure to delete %1 locations and %2 edges?")
+            .arg(selectedLocationCount)
+            .arg(selectedEdgeCount),
+        QMessageBox::Yes | QMessageBox::No,
+        QMessageBox::No);
+
+    if (answer != QMessageBox::Yes) {
+        return false;
+    }
+
+    const auto selectedEdgeIds = model->selectedEdgeIds.values();
+    for (int edgeId : selectedEdgeIds) {
+        model->manager.deleteEdge(edgeId);
+    }
+
+    const auto selectedLocationIds = model->selectedLocationIds.values();
+    for (int locationId : selectedLocationIds) {
+        model->manager.deleteLocation(locationId);
+    }
+
+    clearSelection();
+    hoveredLocationId = -1;
+    hoveredEdgeId = -1;
+    viewport()->update();
+    return true;
 }
 
 bool GraphWidget::toggleSelectionAtPosition(const QPoint& position)
@@ -447,6 +490,13 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
 
 void GraphWidget::keyPressEvent(QKeyEvent *event)
 {
+    if (event->key() == Qt::Key_Delete) {
+        if (deleteSelectionWithConfirmation()) {
+            event->accept();
+            return;
+        }
+    }
+
     if (event->key() == Qt::Key_Escape) {
         bool handled = false;
         if (edgeCreationState != EdgeCreationState::None) {
