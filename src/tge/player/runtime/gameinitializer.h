@@ -51,43 +51,8 @@ public:
             const auto& edgeDef = it.value();
             auto edgeState = std::make_unique<EdgeState>();
             edgeState->def = &edgeDef;
-            edgeState->toLocation = nullptr; // Will be set in step 3
             int edgeId = edgeDef.id;
             state.edges.emplace(edgeId, std::move(edgeState));
-        }
-
-        // Step 3: Assign toLocation and fromLocation pointers for all edges
-        for (auto& edgePair : state.edges) {
-            auto& edgeState = edgePair.second;
-            if (edgeState->def) {
-                int toId = edgeState->def->toLocation;
-                auto locToIt = state.locations.find(toId);
-                if (locToIt != state.locations.end()) {
-                    edgeState->toLocation = locToIt->second.get();
-                }
-                int fromId = edgeState->def->fromLocation;
-                auto locFromIt = state.locations.find(fromId);
-                if (locFromIt != state.locations.end()) {
-                    edgeState->fromLocation = locFromIt->second.get();
-                }
-            }
-        }
-
-        // Step 4: Fill outgoingEdges and incomingEdges for each location
-        for (auto& locPair : state.locations) {
-            auto& locState = locPair.second;
-            int locId = locState->def->id;
-            for (auto& edgePair : state.edges) {
-                auto& edgeState = edgePair.second;
-                if (edgeState->def) {
-                    if (edgeState->def->fromLocation == locId) {
-                        locState->outgoingEdges.push_back(edgeState.get());
-                    }
-                    if (edgeState->def->toLocation == locId) {
-                        locState->incomingEdges.push_back(edgeState.get());
-                    }
-                }
-            }
         }
 
         result.state = std::move(state);

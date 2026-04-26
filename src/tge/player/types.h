@@ -18,22 +18,18 @@ using tge::domain::EdgeDef;
 // Dynamic variable state
 struct VariableState {
     const VariableDef* def;
-    QString value; // Current value (dummy for now)
+    QString value;
 };
 
 // Dynamic edge state
 struct EdgeState {
     const EdgeDef* def;
-    const struct LocationState* fromLocation = nullptr;
-    const struct LocationState* toLocation = nullptr;
 };
 
 // Dynamic location state
 struct LocationState {
     const LocationDef* def;
     std::vector<VariableState> localVariables;
-    std::vector<EdgeState*> outgoingEdges;
-    std::vector<EdgeState*> incomingEdges;
 };
 
 // Dynamic game state

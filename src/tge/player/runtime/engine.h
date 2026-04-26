@@ -55,32 +55,11 @@ public:
             result.description = "";
             result.debugMessages.append("No location definition available.");
         }
-        // Add outgoing edges as options
-        for (const auto* edge : m_state.startLocation->outgoingEdges) {
-            result.options.append(edge);
-        }
         return result;
     }
 
     // Given a CurrentLocation and an edge id, return the transition info
     std::optional<CurrentTransition> choose(const CurrentLocation& current, int edgeId) {
-        for (const EdgeState* edge : current.options) {
-            if (edge && edge->def && edge->def->id == edgeId) {
-                CurrentTransition result;
-                result.edge = edge;
-                result.transitionText = edge->def->transitionText;
-                result.nextLocation = edge->toLocation;
-                result.debugMessages.append(QString("Transition via edge id %1: '%2'")
-                    .arg(edgeId)
-                    .arg(edge->def->transitionText));
-                if (result.nextLocation) {
-                    result.debugMessages.append(QString("Next location id: %1").arg(result.nextLocation->def->id));
-                } else {
-                    result.debugMessages.append("Next location not found.");
-                }
-                return result;
-            }
-        }
         // Edge not found
         CurrentTransition result;
         result.edge = nullptr;

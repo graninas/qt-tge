@@ -11,4 +11,5 @@ UI
 
 Domain
 
+- Multiple descriptions in location (remove or complete)
 - Edge priority: the order of edges as they appear as actions
