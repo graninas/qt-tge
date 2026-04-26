@@ -14,7 +14,7 @@ constexpr int LOCATION_COLOR_COUNT = 15;
 // Supported variable types
 enum class VarType { Integer };
 
-// Variable definition (static)
+// Variable definition
 struct VariableDef {
     QString index; // Identifier: P1, P2, etc.
     QString name;
