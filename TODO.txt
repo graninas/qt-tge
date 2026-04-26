@@ -7,6 +7,7 @@ UI
 - Copy and paste for edges
 - Shadow copy of location values
 - Shadow copy of edge values
+- Location names are a bit shrinked from the bottom
 
 Domain
 
