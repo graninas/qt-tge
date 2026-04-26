@@ -15,11 +15,11 @@ using namespace tge::player;
 using namespace tge::player::runtime;
 
 // Helper: collect edge IDs between two locations
-std::vector<int> collectEdgeIds(const QVector<const EdgeState*>& options, int fromId, int toId) {
+std::vector<int> collectEdgeIds(const QVector<TransitionOption>& options, int fromId, int toId) {
     std::vector<int> ids;
     for (const auto& opt : options) {
-        if (opt && opt->def && opt->def->fromLocation == fromId && opt->def->toLocation == toId)
-            ids.push_back(opt->def->id);
+        if (opt.edge && opt.edge->def && opt.edge->def->fromLocation == fromId && opt.edge->def->toLocation == toId && opt.isAvailable)
+            ids.push_back(opt.edge->def->id);
     }
     return ids;
 }

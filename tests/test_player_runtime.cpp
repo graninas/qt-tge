@@ -1,10 +1,12 @@
 #include <QtCore/QCoreApplication>
 #include <iostream>
+#include <variant>
 #include "../src/tge/domain.h"
 #include "../src/tge/editor/types.h"
 #include "../src/tge/editor/runtime/manager.h"
 #include "../src/tge/player/types.h"
 #include "../src/tge/player/runtime/gameinitializer.h"
+#include "../src/tge/player/runtime/engine.h"
 
 using namespace tge::domain;
 using namespace tge::editor;
@@ -36,6 +38,8 @@ int main(int argc, char *argv[])
     game.globalVariables.append({"P2", "Gold", "Player gold", VarType::Integer, "7"});
     game.infoDisplayItems.append({1, "Health", "[P1]", InfoDisplayItemMode::Actual, 10, true, true});
     game.infoDisplayItems.append({2, "Debug Gold", "[P2]", InfoDisplayItemMode::Debug, 20, true, true});
+    edge->variableSettings.append({1, "([P1] >= 100)", "([P1] - 10)"});
+    edge->infoDisplayItemSettings.append({1, true, 5, true, false, true, false, "([P1] - 10)"});
 
     // Initialize game state
     GameInitializer initializer(game, GameMode::Normal);
@@ -112,25 +116,57 @@ int main(int argc, char *argv[])
         std::cerr << "Test failed: In Debug mode all info items must be visible and visibility-locked." << std::endl;
         return 1;
     }
-    // Old logic: no longer valid
-    // Check that the start location has one outgoing edge
-    // if (dynStart->outgoingEdges.size() != 1) {
-    //     std::cerr << "Test failed: Start location should have 1 outgoing edge, got " << dynStart->outgoingEdges.size() << std::endl;
-    //     return 1;
-    // }
-    // const EdgeState* dynEdge = dynStart->outgoingEdges[0];
-    // if (!dynEdge) {
-    //     std::cerr << "Test failed: Dynamic edge pointer is nullptr." << std::endl;
-    //     return 1;
-    // }
-    // if (!dynEdge->def) {
-    //     std::cerr << "Test failed: Dynamic edge does not reference static definition (def is nullptr)." << std::endl;
-    //     return 1;
-    // }
-    // if (dynEdge->def->fromLocation != dynStart->def->id || dynEdge->def->toLocation != dynFinish->def->id) {
-    //     std::cerr << "Test failed: Dynamic edge does not reference correct static edge." << std::endl;
-    //     return 1;
-    // }
+
+    Engine engine(game, GameMode::Normal);
+    if (engine.hasError()) {
+        std::cerr << "Test failed: Engine initialization error: " << engine.error().toStdString() << std::endl;
+        return 1;
+    }
+    const auto current = engine.start();
+    if (!current.has_value()) {
+        std::cerr << "Test failed: Engine could not return start location." << std::endl;
+        return 1;
+    }
+    if (current->options.size() != 1 || !current->options[0].isAvailable || !current->options[0].edge || !current->options[0].edge->def) {
+        std::cerr << "Test failed: Expected one available transition from start." << std::endl;
+        return 1;
+    }
+    auto transition = engine.choose(*current, current->options[0].edge->def->id);
+    if (!transition.has_value()) {
+        std::cerr << "Test failed: Engine could not choose available edge." << std::endl;
+        return 1;
+    }
+    if (transition->pendingVariableChanges.size() != 1 || transition->pendingVariableChanges[0].newValue != "90") {
+        std::cerr << "Test failed: Pending variable changes were computed incorrectly." << std::endl;
+        return 1;
+    }
+    if (transition->pendingInfoDisplayItemChanges.size() != 1) {
+        std::cerr << "Test failed: Pending info display changes were not created." << std::endl;
+        return 1;
+    }
+    const auto& pendingItemChange = transition->pendingInfoDisplayItemChanges[0];
+    if (!pendingItemChange.changePriority || pendingItemChange.newPriority != 5 ||
+        !pendingItemChange.changeVisibility || pendingItemChange.newVisibility ||
+        !pendingItemChange.changeShowValue || pendingItemChange.newShowValue ||
+        !pendingItemChange.changeValue || pendingItemChange.newValue != "90") {
+        std::cerr << "Test failed: Pending info display changes were computed incorrectly." << std::endl;
+        return 1;
+    }
+    auto stepResult = engine.step(*transition);
+    if (!std::holds_alternative<FinishLocation>(stepResult)) {
+        std::cerr << "Test failed: Expected step to reach finish location." << std::endl;
+        return 1;
+    }
+    if (engine.state().variables[0].value != "90") {
+        std::cerr << "Test failed: Variable update was not applied on step." << std::endl;
+        return 1;
+    }
+    if (engine.state().infoDisplayItems[0].priority != 5 || engine.state().infoDisplayItems[0].visible ||
+        engine.state().infoDisplayItems[0].showFormulaValue || engine.state().infoDisplayItems[0].value != "90") {
+        std::cerr << "Test failed: Info display update was not applied on step." << std::endl;
+        return 1;
+    }
+
     std::cout << "Player runtime test passed: dynamic states and mode-specific initialization are correct." << std::endl;
     return 0;
 }
