@@ -1,5 +1,6 @@
 #include "graphwidget_locations.h"
 #include "graphwidget_helpers.h"
+#include <QApplication>
 #include <cmath>
 
 namespace graphwidget_locations {
@@ -28,6 +29,8 @@ void handleNewLocationMode(GraphWidget* w, QMouseEvent* event) {
             w->model->manager.deleteLocation(newId);
             w->viewport()->update();
         }
+        const bool ctrlPressed = QApplication::keyboardModifiers().testFlag(Qt::ControlModifier);
+        w->setNewLocationMode(ctrlPressed);
     }
     event->accept();
 }
@@ -64,6 +67,8 @@ void handleLocationHover(GraphWidget* w, QMouseEvent* event) {
 
 void handleLocationEdit(GraphWidget* w, int locationId) {
     graphwidget_helpers::editLocationDialog(w->model, locationId, w, [w]() { w->viewport()->update(); });
+    const bool ctrlPressed = QApplication::keyboardModifiers().testFlag(Qt::ControlModifier);
+    w->setNewLocationMode(ctrlPressed);
 }
 
 } // namespace graphwidget_locations
