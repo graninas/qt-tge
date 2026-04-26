@@ -7,6 +7,7 @@
 #include <memory>
 
 #include "tge/domain.h"
+#include "tge/editor/types.h"
 
 namespace tge {
 namespace domain {
@@ -36,6 +37,7 @@ public:
                const tge::domain::LocationDef& toLoc,
                const QVector<tge::domain::VariableDef>& globalVariables,
                const QVector<tge::domain::InfoDisplayItemDef>& infoDisplayItems,
+               const tge::editor::CapabilityMatrix& capabilities,
                QWidget* parent = nullptr);
     QString optionText() const;
     QString transitionText() const;
@@ -83,6 +85,7 @@ private:
 
     const QVector<tge::domain::VariableDef>& m_globalVariables;
     const QVector<tge::domain::InfoDisplayItemDef>& m_infoDisplayItems;
+    tge::editor::CapabilityMatrix m_capabilities;
     QMap<int, tge::domain::EdgeVariableSettingDef> m_variableSettingsByIndex;
     QMap<int, tge::domain::EdgeInfoDisplayItemSettingDef> m_infoDisplaySettingsById;
     int m_currentVariableRow = -1;

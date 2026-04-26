@@ -514,23 +514,39 @@ bool editEdgeDialog(UiModel* model, int edgeId, QWidget* parent, std::function<v
 
     const auto& fromLoc = model->gameDef.locations[edge.fromLocation];
     const auto& toLoc = model->gameDef.locations[edge.toLocation];
+    const auto caps = model->editorState.capabilities;
 
     EdgeDialog dlg(edge,
                    fromLoc,
                    toLoc,
                    model->gameDef.globalVariables,
                    model->gameDef.infoDisplayItems,
+                   caps,
                    parent);
     const bool accepted = (dlg.exec() == QDialog::Accepted);
     if (accepted) {
         auto& edgeToUpdate = model->gameDef.edges[edgeId];
-        edgeToUpdate.optionText = dlg.optionText();
-        edgeToUpdate.transitionText = dlg.transitionText();
-        edgeToUpdate.condition = dlg.conditionText();
-        edgeToUpdate.variableSettings = dlg.variableSettings();
-        edgeToUpdate.infoDisplayItemSettings = dlg.infoDisplayItemSettings();
-        edgeToUpdate.color = dlg.edgeColor();
-        edgeToUpdate.priority = dlg.edgePriority();
+        if (caps.allowEdgeOptionTextEdit) {
+            edgeToUpdate.optionText = dlg.optionText();
+        }
+        if (caps.allowEdgeTransitionTextEdit) {
+            edgeToUpdate.transitionText = dlg.transitionText();
+        }
+        if (caps.allowEdgeConditionEdit) {
+            edgeToUpdate.condition = dlg.conditionText();
+        }
+        if (caps.allowEdgeVariableSettingsEdit) {
+            edgeToUpdate.variableSettings = dlg.variableSettings();
+        }
+        if (caps.allowEdgeInfoDisplaySettingsEdit) {
+            edgeToUpdate.infoDisplayItemSettings = dlg.infoDisplayItemSettings();
+        }
+        if (caps.allowEdgeColorEdit) {
+            edgeToUpdate.color = dlg.edgeColor();
+        }
+        if (caps.allowEdgePriorityEdit) {
+            edgeToUpdate.priority = dlg.edgePriority();
+        }
     }
     if (onUpdate) onUpdate();
     return accepted;
@@ -541,11 +557,16 @@ bool editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::fu
         return false;
     }
 
-    LocationDialog dlg(&model->gameDef.locations[locationId], &model->manager, parent);
+    const auto caps = model->editorState.capabilities;
+    LocationDialog dlg(&model->gameDef.locations[locationId], &model->manager, caps, parent);
     const bool accepted = (dlg.exec() == QDialog::Accepted);
     if (accepted) {
-        model->gameDef.locations[locationId].label = dlg.label();
-        model->gameDef.locations[locationId].description = dlg.description();
+        if (caps.allowLocationLabelEdit) {
+            model->gameDef.locations[locationId].label = dlg.label();
+        }
+        if (caps.allowLocationDescriptionEdit) {
+            model->gameDef.locations[locationId].description = dlg.description();
+        }
     }
     if (onUpdate) onUpdate();
     return accepted;

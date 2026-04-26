@@ -22,10 +22,13 @@
 using tge::domain::InfoDisplayItemDef;
 using tge::domain::InfoDisplayItemMode;
 
-InfoDisplayItemsDialog::InfoDisplayItemsDialog(QVector<InfoDisplayItemDef>& items, QWidget* parent)
+InfoDisplayItemsDialog::InfoDisplayItemsDialog(QVector<InfoDisplayItemDef>& items,
+                                               const tge::editor::CapabilityMatrix& capabilities,
+                                               QWidget* parent)
     : QDialog(parent)
     , m_itemsRef(items)
     , m_workingItems(items)
+    , m_capabilities(capabilities)
 {
     setWindowTitle(tr("Info Display Items"));
     resize(900, 520);
@@ -158,15 +161,16 @@ void InfoDisplayItemsDialog::updateEditorEnabledState()
 {
     const bool hasSelection = (m_currentRow >= 0 && m_currentRow < m_workingItems.size());
     m_idSpin->setEnabled(hasSelection);
-    m_labelEdit->setEnabled(hasSelection);
-    m_formulaEdit->setEnabled(hasSelection);
-    m_modeCombo->setEnabled(hasSelection);
-    m_prioritySpin->setEnabled(hasSelection);
-    m_hiddenRadio->setEnabled(hasSelection);
-    m_shownRadio->setEnabled(hasSelection);
-    m_showValueYesRadio->setEnabled(hasSelection);
-    m_showValueNoRadio->setEnabled(hasSelection);
-    m_removeButton->setEnabled(hasSelection);
+    m_labelEdit->setEnabled(hasSelection && m_capabilities.allowInfoDisplayItemLabelEdit);
+    m_formulaEdit->setEnabled(hasSelection && m_capabilities.allowInfoDisplayItemFormulaEdit);
+    m_modeCombo->setEnabled(hasSelection && m_capabilities.allowInfoDisplayItemModeEdit);
+    m_prioritySpin->setEnabled(hasSelection && m_capabilities.allowInfoDisplayItemPriorityEdit);
+    m_hiddenRadio->setEnabled(hasSelection && m_capabilities.allowInfoDisplayItemVisibilityEdit);
+    m_shownRadio->setEnabled(hasSelection && m_capabilities.allowInfoDisplayItemVisibilityEdit);
+    m_showValueYesRadio->setEnabled(hasSelection && m_capabilities.allowInfoDisplayItemShowValueEdit);
+    m_showValueNoRadio->setEnabled(hasSelection && m_capabilities.allowInfoDisplayItemShowValueEdit);
+    m_addButton->setEnabled(m_capabilities.allowInfoDisplayItemCreateDelete);
+    m_removeButton->setEnabled(hasSelection && m_capabilities.allowInfoDisplayItemCreateDelete);
 }
 
 void InfoDisplayItemsDialog::saveEditorToCurrentRow()
@@ -176,12 +180,24 @@ void InfoDisplayItemsDialog::saveEditorToCurrentRow()
     }
 
     InfoDisplayItemDef& item = m_workingItems[m_currentRow];
-    item.label = m_labelEdit->text();
-    item.valueFormula = m_formulaEdit->toPlainText().trimmed();
-    item.mode = static_cast<InfoDisplayItemMode>(m_modeCombo->currentData().toInt());
-    item.priority = m_prioritySpin->value();
-    item.isVisible = m_shownRadio->isChecked();
-    item.showFormulaValue = m_showValueYesRadio->isChecked();
+    if (m_capabilities.allowInfoDisplayItemLabelEdit) {
+        item.label = m_labelEdit->text();
+    }
+    if (m_capabilities.allowInfoDisplayItemFormulaEdit) {
+        item.valueFormula = m_formulaEdit->toPlainText().trimmed();
+    }
+    if (m_capabilities.allowInfoDisplayItemModeEdit) {
+        item.mode = static_cast<InfoDisplayItemMode>(m_modeCombo->currentData().toInt());
+    }
+    if (m_capabilities.allowInfoDisplayItemPriorityEdit) {
+        item.priority = m_prioritySpin->value();
+    }
+    if (m_capabilities.allowInfoDisplayItemVisibilityEdit) {
+        item.isVisible = m_shownRadio->isChecked();
+    }
+    if (m_capabilities.allowInfoDisplayItemShowValueEdit) {
+        item.showFormulaValue = m_showValueYesRadio->isChecked();
+    }
 }
 
 void InfoDisplayItemsDialog::loadRowToEditor(int row)
@@ -277,14 +293,20 @@ void InfoDisplayItemsDialog::validateAndShowStatus()
         m_formulaStatusLabel->setStyleSheet("color: #6a8f43;");
     }
 
+    bool ok = true;
     QString error;
-    const bool ok = validateAll(&error);
-    if (ok) {
-        m_statusLabel->setText(tr("All info display items are valid."));
-        m_statusLabel->setStyleSheet("color: #1d7d31;");
+    if (!m_capabilities.canEditInfoDisplayItems()) {
+        m_statusLabel->setText(tr("Info display items are read-only in current mode."));
+        m_statusLabel->setStyleSheet("color: #6a8f43;");
     } else {
-        m_statusLabel->setText(error);
-        m_statusLabel->setStyleSheet("color: #b00020;");
+        ok = validateAll(&error);
+        if (ok) {
+            m_statusLabel->setText(tr("All info display items are valid."));
+            m_statusLabel->setStyleSheet("color: #1d7d31;");
+        } else {
+            m_statusLabel->setText(error);
+            m_statusLabel->setStyleSheet("color: #b00020;");
+        }
     }
 
     if (QPushButton* okButton = m_buttonBox->button(QDialogButtonBox::Ok)) {
@@ -328,6 +350,10 @@ bool InfoDisplayItemsDialog::validateAll(QString* errorMessage) const
 
 void InfoDisplayItemsDialog::onAddItem()
 {
+    if (!m_capabilities.allowInfoDisplayItemCreateDelete) {
+        return;
+    }
+
     saveEditorToCurrentRow();
 
     InfoDisplayItemDef item;
@@ -347,6 +373,10 @@ void InfoDisplayItemsDialog::onAddItem()
 
 void InfoDisplayItemsDialog::onRemoveItem()
 {
+    if (!m_capabilities.allowInfoDisplayItemCreateDelete) {
+        return;
+    }
+
     if (m_currentRow < 0 || m_currentRow >= m_workingItems.size()) {
         return;
     }

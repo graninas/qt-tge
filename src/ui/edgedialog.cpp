@@ -27,11 +27,13 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
                        const tge::domain::LocationDef& toLoc,
                        const QVector<tge::domain::VariableDef>& globalVariables,
                        const QVector<tge::domain::InfoDisplayItemDef>& infoDisplayItems,
+                       const tge::editor::CapabilityMatrix& capabilities,
                        QWidget* parent)
     : QDialog(parent)
     , m_colorButtonGroup(nullptr)
     , m_globalVariables(globalVariables)
     , m_infoDisplayItems(infoDisplayItems)
+    , m_capabilities(capabilities)
     , m_variableList(nullptr)
     , m_variableConditionEdit(nullptr)
     , m_variableNewValueEdit(nullptr)
@@ -103,12 +105,14 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
         optionRow->addWidget(new QLabel(tr("Option:"), this));
         m_optionEdit = new QTextEdit(edge.optionText, this);
         m_optionEdit->setMaximumHeight(50);
+        m_optionEdit->setEnabled(m_capabilities.allowEdgeOptionTextEdit);
         optionRow->addWidget(m_optionEdit);
         layout->addLayout(optionRow);
     }
 
     layout->addWidget(new QLabel(tr("Transition Text:"), this));
     m_transitionEdit = new QTextEdit(edge.transitionText, this);
+    m_transitionEdit->setEnabled(m_capabilities.allowEdgeTransitionTextEdit);
     layout->addWidget(m_transitionEdit);
 
     {
@@ -116,6 +120,7 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
         conditionRow->addWidget(new QLabel(tr("Condition:"), this));
         m_conditionEdit = new QTextEdit(edge.condition, this);
         m_conditionEdit->setMaximumHeight(60);
+        m_conditionEdit->setEnabled(m_capabilities.allowEdgeConditionEdit);
         conditionRow->addWidget(m_conditionEdit);
         layout->addLayout(conditionRow);
     }
@@ -131,6 +136,7 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
         m_prioritySpin->setMaximum(1000000000);
         m_prioritySpin->setValue(edge.priority);
         m_prioritySpin->setToolTip(tr("Edge display/selection priority. Lower value = shown first."));
+        m_prioritySpin->setEnabled(m_capabilities.allowEdgePriorityEdit);
         priorityRow->addWidget(m_prioritySpin);
         priorityRow->addStretch();
         layout->addLayout(priorityRow);
@@ -224,6 +230,14 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
     settingsTabs->addTab(infoDisplayGroup, tr("Info Display"));
 
     layout->addWidget(settingsTabs);
+
+    variableGroup->setEnabled(m_capabilities.allowEdgeVariableSettingsEdit);
+    infoDisplayGroup->setEnabled(m_capabilities.allowEdgeInfoDisplaySettingsEdit);
+    for (QPushButton* colorButton : m_colorButtons) {
+        if (colorButton) {
+            colorButton->setEnabled(m_capabilities.allowEdgeColorEdit);
+        }
+    }
 
     rebuildInfoDisplayItemList();
     if (m_infoDisplayItems.isEmpty()) {
@@ -393,29 +407,42 @@ int EdgeDialog::edgePriority() const {
 }
 
 void EdgeDialog::updateValidation() {
-    saveVariableEditorToCurrentRow();
-    saveInfoDisplayItemEditorToCurrentRow();
+    if (m_capabilities.allowEdgeVariableSettingsEdit) {
+        saveVariableEditorToCurrentRow();
+    }
+    if (m_capabilities.allowEdgeInfoDisplaySettingsEdit) {
+        saveInfoDisplayItemEditorToCurrentRow();
+    }
 
     bool mainConditionOk = true;
-    const QString condition = m_conditionEdit->toPlainText().trimmed();
-    if (condition.isEmpty()) {
-        m_conditionStatusLabel->setText(tr("Condition is empty: edge is always available"));
+    if (!m_capabilities.allowEdgeConditionEdit) {
+        m_conditionStatusLabel->setText(tr("Condition editing is disabled in current mode"));
         m_conditionStatusLabel->setStyleSheet("color: #6a8f43;");
     } else {
-        const auto parseResult = tge::formula::parse(condition.toStdString());
-        if (parseResult.ast) {
-            m_conditionStatusLabel->setText(tr("Formula parsed successfully"));
-            m_conditionStatusLabel->setStyleSheet("color: #1d7d31;");
+        const QString condition = m_conditionEdit->toPlainText().trimmed();
+        if (condition.isEmpty()) {
+            m_conditionStatusLabel->setText(tr("Condition is empty: edge is always available"));
+            m_conditionStatusLabel->setStyleSheet("color: #6a8f43;");
         } else {
-            m_conditionStatusLabel->setText(tr("Parse error: %1").arg(QString::fromStdString(parseResult.error)));
-            m_conditionStatusLabel->setStyleSheet("color: #b00020;");
-            mainConditionOk = false;
+            const auto parseResult = tge::formula::parse(condition.toStdString());
+            if (parseResult.ast) {
+                m_conditionStatusLabel->setText(tr("Formula parsed successfully"));
+                m_conditionStatusLabel->setStyleSheet("color: #1d7d31;");
+            } else {
+                m_conditionStatusLabel->setText(tr("Parse error: %1").arg(QString::fromStdString(parseResult.error)));
+                m_conditionStatusLabel->setStyleSheet("color: #b00020;");
+                mainConditionOk = false;
+            }
         }
     }
 
     bool selectedConditionOk = true;
     bool selectedNewValueOk = true;
-    if (m_currentVariableRow >= 0 && m_currentVariableRow < m_globalVariables.size()) {
+    if (!m_capabilities.allowEdgeVariableSettingsEdit) {
+        m_variableConditionStatusLabel->setText(tr("Variable settings editing is disabled in current mode"));
+        m_variableConditionStatusLabel->setStyleSheet("color: #6a8f43;");
+        m_variableNewValueStatusLabel->clear();
+    } else if (m_currentVariableRow >= 0 && m_currentVariableRow < m_globalVariables.size()) {
         const QString selectedCondition = m_variableConditionEdit->toPlainText().trimmed();
         if (selectedCondition.isEmpty()) {
             m_variableConditionStatusLabel->setText(tr("Condition is empty: no extra restriction"));
@@ -453,24 +480,36 @@ void EdgeDialog::updateValidation() {
         m_variableNewValueStatusLabel->clear();
     }
 
-    QString allSettingsError;
-    const bool allSettingsOk = validateAllVariableSettings(&allSettingsError);
-    if (allSettingsOk) {
-        m_variableOverallStatusLabel->setText(tr("All variable settings are valid"));
-        m_variableOverallStatusLabel->setStyleSheet("color: #1d7d31;");
+    bool allSettingsOk = true;
+    if (!m_capabilities.allowEdgeVariableSettingsEdit) {
+        m_variableOverallStatusLabel->setText(tr("Variable settings are read-only in current mode"));
+        m_variableOverallStatusLabel->setStyleSheet("color: #6a8f43;");
     } else {
-        m_variableOverallStatusLabel->setText(allSettingsError);
-        m_variableOverallStatusLabel->setStyleSheet("color: #b00020;");
+        QString allSettingsError;
+        allSettingsOk = validateAllVariableSettings(&allSettingsError);
+        if (allSettingsOk) {
+            m_variableOverallStatusLabel->setText(tr("All variable settings are valid"));
+            m_variableOverallStatusLabel->setStyleSheet("color: #1d7d31;");
+        } else {
+            m_variableOverallStatusLabel->setText(allSettingsError);
+            m_variableOverallStatusLabel->setStyleSheet("color: #b00020;");
+        }
     }
 
-    QString allInfoDisplaySettingsError;
-    const bool allInfoDisplaySettingsOk = validateAllInfoDisplayItemSettings(&allInfoDisplaySettingsError);
-    if (allInfoDisplaySettingsOk) {
-        m_infoDisplayOverallStatusLabel->setText(tr("All info display item settings are valid"));
-        m_infoDisplayOverallStatusLabel->setStyleSheet("color: #1d7d31;");
+    bool allInfoDisplaySettingsOk = true;
+    if (!m_capabilities.allowEdgeInfoDisplaySettingsEdit) {
+        m_infoDisplayOverallStatusLabel->setText(tr("Info display settings are read-only in current mode"));
+        m_infoDisplayOverallStatusLabel->setStyleSheet("color: #6a8f43;");
     } else {
-        m_infoDisplayOverallStatusLabel->setText(allInfoDisplaySettingsError);
-        m_infoDisplayOverallStatusLabel->setStyleSheet("color: #b00020;");
+        QString allInfoDisplaySettingsError;
+        allInfoDisplaySettingsOk = validateAllInfoDisplayItemSettings(&allInfoDisplaySettingsError);
+        if (allInfoDisplaySettingsOk) {
+            m_infoDisplayOverallStatusLabel->setText(tr("All info display item settings are valid"));
+            m_infoDisplayOverallStatusLabel->setStyleSheet("color: #1d7d31;");
+        } else {
+            m_infoDisplayOverallStatusLabel->setText(allInfoDisplaySettingsError);
+            m_infoDisplayOverallStatusLabel->setStyleSheet("color: #b00020;");
+        }
     }
 
     if (m_buttons) {

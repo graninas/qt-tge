@@ -4,6 +4,7 @@
 #include <QListWidget>
 #include "tge/domain.h"
 #include "tge/editor/runtime/manager.h"
+#include "tge/editor/types.h"
 #include <QButtonGroup>
 #include <QVBoxLayout>
 
@@ -25,7 +26,10 @@ class QPushButton;
 class LocationDialog : public QDialog {
     Q_OBJECT
 public:
-    LocationDialog(tge::domain::LocationDef* loc, tge::editor::runtime::Manager* manager, QWidget* parent = nullptr);
+    LocationDialog(tge::domain::LocationDef* loc,
+                   tge::editor::runtime::Manager* manager,
+                   const tge::editor::CapabilityMatrix& capabilities,
+                   QWidget* parent = nullptr);
     QString label() const;
     QString description() const;
 private slots:
@@ -38,6 +42,7 @@ private:
     QListWidget* m_edgeListWidget;
     tge::domain::LocationDef* m_location;
     tge::editor::runtime::Manager* m_manager;
+    tge::editor::CapabilityMatrix m_capabilities;
     QButtonGroup* m_colorButtonGroup;
     QVector<QPushButton*> m_colorButtons;
     void populateEdgeList();

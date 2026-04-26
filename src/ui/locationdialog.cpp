@@ -17,8 +17,11 @@
 
 using tge::editor::runtime::Manager;
 
-LocationDialog::LocationDialog(tge::domain::LocationDef* loc, Manager* manager, QWidget* parent)
-    : QDialog(parent), m_location(loc), m_manager(manager)
+LocationDialog::LocationDialog(tge::domain::LocationDef* loc,
+                               Manager* manager,
+                               const tge::editor::CapabilityMatrix& capabilities,
+                               QWidget* parent)
+    : QDialog(parent), m_location(loc), m_manager(manager), m_capabilities(capabilities)
 {
     setWindowTitle(tr("Location Info"));
     setMinimumWidth(600); // Make dialog twice as wide (adjust as needed)
@@ -52,16 +55,19 @@ LocationDialog::LocationDialog(tge::domain::LocationDef* loc, Manager* manager, 
 
     // Label
     m_labelEdit = new QLineEdit(loc->label, this);
+    m_labelEdit->setEnabled(m_capabilities.allowLocationLabelEdit);
     leftLayout->addWidget(m_labelEdit);
 
     // Description
     m_descEdit = new QTextEdit(this);
     m_descEdit->setPlainText(loc->description);
+    m_descEdit->setEnabled(m_capabilities.allowLocationDescriptionEdit);
     leftLayout->addWidget(m_descEdit);
 
     // --- Edges area ---
     rightLayout->addWidget(new QLabel(tr("Edges (incoming/outgoing):"), this));
     m_edgeListWidget = new QListWidget(this);
+    m_edgeListWidget->setEnabled(m_capabilities.canEditEdgeDialog());
     rightLayout->addWidget(m_edgeListWidget);
     populateEdgeList();
     connect(m_edgeListWidget, &QListWidget::itemClicked, this, &LocationDialog::onEdgeItemClicked);
@@ -93,12 +99,19 @@ void LocationDialog::populateEdgeList() {
             item->setSizeHint(widget->sizeHint());
             m_edgeListWidget->addItem(item);
             m_edgeListWidget->setItemWidget(item, widget);
+            if (widget->deleteButton()) {
+                widget->deleteButton()->setEnabled(m_capabilities.allowEdgeCreateDelete);
+            }
             connect(widget, &EdgeListItemWidget::deleteRequested, this, &LocationDialog::onEdgeDeleteRequested);
         }
     }
 }
 
 void LocationDialog::onEdgeDeleteRequested(int edgeId) {
+    if (!m_capabilities.allowEdgeCreateDelete) {
+        return;
+    }
+
     if (QMessageBox::question(this, tr("Delete Edge"), tr("Delete edge %1?").arg(edgeId)) == QMessageBox::Yes) {
         m_manager->deleteEdge(edgeId);
         populateEdgeList();
@@ -106,6 +119,10 @@ void LocationDialog::onEdgeDeleteRequested(int edgeId) {
 }
 
 void LocationDialog::onEdgeItemClicked(QListWidgetItem* item) {
+    if (!m_capabilities.canEditEdgeDialog()) {
+        return;
+    }
+
     // Open edge dialog for editing
     auto& game = m_manager->game();
     EdgeListItemWidget* widget = qobject_cast<EdgeListItemWidget*>(m_edgeListWidget->itemWidget(item));
@@ -120,15 +137,30 @@ void LocationDialog::onEdgeItemClicked(QListWidgetItem* item) {
                    toLoc,
                    game.globalVariables,
                    game.infoDisplayItems,
+                   m_capabilities,
                    this);
     if (dlg.exec() == QDialog::Accepted) {
-        edge.optionText = dlg.optionText();
-        edge.transitionText = dlg.transitionText();
-        edge.condition = dlg.conditionText();
-        edge.variableSettings = dlg.variableSettings();
-        edge.infoDisplayItemSettings = dlg.infoDisplayItemSettings();
-        edge.color = dlg.edgeColor();
-        edge.priority = dlg.edgePriority();
+        if (m_capabilities.allowEdgeOptionTextEdit) {
+            edge.optionText = dlg.optionText();
+        }
+        if (m_capabilities.allowEdgeTransitionTextEdit) {
+            edge.transitionText = dlg.transitionText();
+        }
+        if (m_capabilities.allowEdgeConditionEdit) {
+            edge.condition = dlg.conditionText();
+        }
+        if (m_capabilities.allowEdgeVariableSettingsEdit) {
+            edge.variableSettings = dlg.variableSettings();
+        }
+        if (m_capabilities.allowEdgeInfoDisplaySettingsEdit) {
+            edge.infoDisplayItemSettings = dlg.infoDisplayItemSettings();
+        }
+        if (m_capabilities.allowEdgeColorEdit) {
+            edge.color = dlg.edgeColor();
+        }
+        if (m_capabilities.allowEdgePriorityEdit) {
+            edge.priority = dlg.edgePriority();
+        }
         populateEdgeList();
     }
 }
@@ -157,6 +189,12 @@ void LocationDialog::setupColorPaletteUI(QVBoxLayout* layout) {
     layout->addLayout(grid);
     connect(m_colorButtonGroup, &QButtonGroup::idClicked, this, &LocationDialog::onColorButtonClicked);
     updateColorSelection();
+
+    for (QPushButton* colorButton : m_colorButtons) {
+        if (colorButton) {
+            colorButton->setEnabled(m_capabilities.allowLocationColorEdit);
+        }
+    }
 }
 
 void LocationDialog::onColorButtonClicked(int id) {

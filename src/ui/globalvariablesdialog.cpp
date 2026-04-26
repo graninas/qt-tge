@@ -17,10 +17,13 @@
 using tge::domain::VarType;
 using tge::domain::VariableDef;
 
-GlobalVariablesDialog::GlobalVariablesDialog(QVector<VariableDef>& variables, QWidget* parent)
+GlobalVariablesDialog::GlobalVariablesDialog(QVector<VariableDef>& variables,
+                                             const tge::editor::CapabilityMatrix& capabilities,
+                                             QWidget* parent)
     : QDialog(parent)
     , m_variablesRef(variables)
     , m_workingVariables(variables)
+    , m_capabilities(capabilities)
 {
     setWindowTitle(tr("Global Variables"));
     resize(900, 520);
@@ -113,12 +116,13 @@ void GlobalVariablesDialog::rebuildList()
 void GlobalVariablesDialog::updateEditorEnabledState()
 {
     const bool hasSelection = (m_currentRow >= 0 && m_currentRow < m_workingVariables.size());
-    m_indexSpin->setEnabled(hasSelection);
-    m_nameEdit->setEnabled(hasSelection);
-    m_descriptionEdit->setEnabled(hasSelection);
-    m_typeCombo->setEnabled(hasSelection);
-    m_defaultValueEdit->setEnabled(hasSelection);
-    m_removeButton->setEnabled(hasSelection);
+    m_indexSpin->setEnabled(hasSelection && m_capabilities.allowGlobalVariableIndexEdit);
+    m_nameEdit->setEnabled(hasSelection && m_capabilities.allowGlobalVariableNameEdit);
+    m_descriptionEdit->setEnabled(hasSelection && m_capabilities.allowGlobalVariableDescriptionEdit);
+    m_typeCombo->setEnabled(hasSelection && m_capabilities.allowGlobalVariableTypeEdit);
+    m_defaultValueEdit->setEnabled(hasSelection && m_capabilities.allowGlobalVariableDefaultValueEdit);
+    m_addButton->setEnabled(m_capabilities.allowGlobalVariableCreateDelete);
+    m_removeButton->setEnabled(hasSelection && m_capabilities.allowGlobalVariableCreateDelete);
 }
 
 void GlobalVariablesDialog::saveEditorToCurrentRow()
@@ -128,16 +132,26 @@ void GlobalVariablesDialog::saveEditorToCurrentRow()
     }
 
     VariableDef& var = m_workingVariables[m_currentRow];
-    var.index = indexToText(m_indexSpin->value());
-    var.name = m_nameEdit->text();
-    var.description = m_descriptionEdit->toPlainText();
+    if (m_capabilities.allowGlobalVariableIndexEdit) {
+        var.index = indexToText(m_indexSpin->value());
+    }
+    if (m_capabilities.allowGlobalVariableNameEdit) {
+        var.name = m_nameEdit->text();
+    }
+    if (m_capabilities.allowGlobalVariableDescriptionEdit) {
+        var.description = m_descriptionEdit->toPlainText();
+    }
 
-    const auto typeValue = static_cast<VarType>(m_typeCombo->currentData().toInt());
-    var.type = typeValue;
+    if (m_capabilities.allowGlobalVariableTypeEdit) {
+        const auto typeValue = static_cast<VarType>(m_typeCombo->currentData().toInt());
+        var.type = typeValue;
+    }
 
-    var.defaultValue = m_defaultValueEdit->text().trimmed();
-    if (var.defaultValue.isEmpty()) {
-        var.defaultValue = "0";
+    if (m_capabilities.allowGlobalVariableDefaultValueEdit) {
+        var.defaultValue = m_defaultValueEdit->text().trimmed();
+        if (var.defaultValue.isEmpty()) {
+            var.defaultValue = "0";
+        }
     }
 }
 
@@ -279,6 +293,10 @@ QString GlobalVariablesDialog::indexToText(int indexValue)
 
 void GlobalVariablesDialog::onAddVariable()
 {
+    if (!m_capabilities.allowGlobalVariableCreateDelete) {
+        return;
+    }
+
     saveEditorToCurrentRow();
 
     VariableDef var;
@@ -297,6 +315,10 @@ void GlobalVariablesDialog::onAddVariable()
 
 void GlobalVariablesDialog::onRemoveVariable()
 {
+    if (!m_capabilities.allowGlobalVariableCreateDelete) {
+        return;
+    }
+
     if (m_currentRow < 0 || m_currentRow >= m_workingVariables.size()) {
         return;
     }

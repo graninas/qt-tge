@@ -3,10 +3,14 @@
 #include "graphwidget.h"
 #include "globalvariablesdialog.h"
 #include "infodisplayitemsdialog.h"
+#include "tge/player/runtime/gameinitializer.h"
 
 #include <QLabel>
+#include <QMessageBox>
 #include <QToolBar>
 #include <QToolButton>
+#include <QVBoxLayout>
+#include <QWidget>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -14,11 +18,23 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
 
-    graphWidget = new GraphWidget(this);
-    setCentralWidget(graphWidget);
+    QWidget *central = new QWidget(this);
+    QVBoxLayout *mainLayout = new QVBoxLayout(central);
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    mainLayout->setSpacing(0);
+
+    graphWidget = new GraphWidget(central);
+    playerWidget = new QWidget(central);
+    playerWidget->setVisible(false);
+    playerWidget->setMinimumHeight(120);
+
+    mainLayout->addWidget(graphWidget, 2);
+    mainLayout->addWidget(playerWidget, 1);
+    setCentralWidget(central);
 
     static UiModel staticModel = UiModel::makeTestGame();
     model = &staticModel;
+    model->editorState.setMode(tge::editor::EditingMode::StaticModel);
     graphWidget->setModel(model);
     connect(graphWidget, &GraphWidget::selectionChanged, this, &MainWindow::updateSelectionSummary);
 
@@ -38,10 +54,18 @@ MainWindow::MainWindow(QWidget *parent)
     toolBar->addWidget(infoDisplayItemsButton);
     connect(infoDisplayItemsButton, &QToolButton::clicked, this, &MainWindow::onEditInfoDisplayItems);
 
+    playerButton = new QToolButton(this);
+    playerButton->setText("Player");
+    playerButton->setToolTip("Toggle player mode");
+    playerButton->setCheckable(true);
+    toolBar->addWidget(playerButton);
+    connect(playerButton, &QToolButton::toggled, this, &MainWindow::onPlayerToggled);
+
     selectionSummaryLabel = new QLabel(this);
     selectionSummaryLabel->setToolTip("Selected locations and edges");
     toolBar->addWidget(selectionSummaryLabel);
     updateSelectionSummary(model->selectedLocationIds.size(), model->selectedEdgeIds.size());
+    applyEditorModeUiState();
 }
 
 void MainWindow::onEditGlobalVariables()
@@ -50,7 +74,7 @@ void MainWindow::onEditGlobalVariables()
         return;
     }
 
-    GlobalVariablesDialog dlg(model->gameDef.globalVariables, this);
+    GlobalVariablesDialog dlg(model->gameDef.globalVariables, model->editorState.capabilities, this);
     if (dlg.exec() == QDialog::Accepted) {
         graphWidget->viewport()->update();
     }
@@ -62,9 +86,58 @@ void MainWindow::onEditInfoDisplayItems()
         return;
     }
 
-    InfoDisplayItemsDialog dlg(model->gameDef.infoDisplayItems, this);
+    InfoDisplayItemsDialog dlg(model->gameDef.infoDisplayItems, model->editorState.capabilities, this);
     if (dlg.exec() == QDialog::Accepted) {
         graphWidget->viewport()->update();
+    }
+}
+
+void MainWindow::onPlayerToggled(bool enabled)
+{
+    if (!model) {
+        return;
+    }
+
+    if (enabled) {
+        tge::player::runtime::GameInitializer initializer(model->gameDef, tge::player::GameMode::Normal);
+        auto initResult = initializer.initialize();
+        if (!initResult.state.has_value()) {
+            QMessageBox::warning(this,
+                                 tr("Player initialization failed"),
+                                 initResult.error.value_or(tr("Unknown error")));
+            playerButton->blockSignals(true);
+            playerButton->setChecked(false);
+            playerButton->blockSignals(false);
+            return;
+        }
+        playerState = std::move(initResult.state.value());
+        model->editorState.setMode(tge::editor::EditingMode::Player);
+    } else {
+        playerState.reset();
+        model->editorState.setMode(tge::editor::EditingMode::StaticModel);
+    }
+
+    applyEditorModeUiState();
+    graphWidget->viewport()->update();
+}
+
+void MainWindow::applyEditorModeUiState()
+{
+    if (!model) {
+        return;
+    }
+
+    const bool playerMode = (model->editorState.mode == tge::editor::EditingMode::Player);
+    if (playerWidget) {
+        playerWidget->setVisible(playerMode);
+    }
+
+    if (globalVariablesButton) {
+        globalVariablesButton->setEnabled(true);
+    }
+
+    if (infoDisplayItemsButton) {
+        infoDisplayItemsButton->setEnabled(true);
     }
 }
 

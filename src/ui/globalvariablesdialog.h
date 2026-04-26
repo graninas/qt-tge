@@ -5,6 +5,7 @@
 #include <QVector>
 
 #include "tge/domain.h"
+#include "tge/editor/types.h"
 
 class QListWidget;
 class QSpinBox;
@@ -19,7 +20,9 @@ class GlobalVariablesDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit GlobalVariablesDialog(QVector<tge::domain::VariableDef>& variables, QWidget* parent = nullptr);
+    explicit GlobalVariablesDialog(QVector<tge::domain::VariableDef>& variables,
+                                   const tge::editor::CapabilityMatrix& capabilities,
+                                   QWidget* parent = nullptr);
 
 private:
     void rebuildList();
@@ -43,6 +46,7 @@ private:
 private:
     QVector<tge::domain::VariableDef>& m_variablesRef;
     QVector<tge::domain::VariableDef> m_workingVariables;
+    tge::editor::CapabilityMatrix m_capabilities;
 
     int m_currentRow = -1;
     bool m_loadingEditor = false;

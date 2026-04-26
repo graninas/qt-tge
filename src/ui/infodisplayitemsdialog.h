@@ -5,6 +5,7 @@
 #include <QVector>
 
 #include "tge/domain.h"
+#include "tge/editor/types.h"
 
 class QListWidget;
 class QLineEdit;
@@ -21,7 +22,9 @@ class InfoDisplayItemsDialog : public QDialog {
     Q_OBJECT
 
 public:
-    explicit InfoDisplayItemsDialog(QVector<tge::domain::InfoDisplayItemDef>& items, QWidget* parent = nullptr);
+    explicit InfoDisplayItemsDialog(QVector<tge::domain::InfoDisplayItemDef>& items,
+                                    const tge::editor::CapabilityMatrix& capabilities,
+                                    QWidget* parent = nullptr);
 
 private:
     void rebuildList();
@@ -45,6 +48,7 @@ private:
 private:
     QVector<tge::domain::InfoDisplayItemDef>& m_itemsRef;
     QVector<tge::domain::InfoDisplayItemDef> m_workingItems;
+    tge::editor::CapabilityMatrix m_capabilities;
 
     int m_currentRow = -1;
     bool m_loadingEditor = false;

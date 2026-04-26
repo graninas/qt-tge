@@ -26,6 +26,10 @@ bool GraphWidget::tryEditEdgeAtPosition(const QPoint& position)
         return false;
     }
 
+    if (!model->editorState.capabilities.canEditEdgeDialog()) {
+        return false;
+    }
+
     int edgeId = graphwidget_helpers::findEdgeAtMouse(model, position, &model->sceneModel);
     if (edgeId == -1) {
         return false;
@@ -61,6 +65,11 @@ void GraphWidget::clearSelection()
 bool GraphWidget::deleteSelectionWithConfirmation()
 {
     if (!model) {
+        return false;
+    }
+
+    if (!model->editorState.capabilities.allowEdgeCreateDelete
+        || !model->editorState.capabilities.allowLocationCreateDelete) {
         return false;
     }
 
@@ -226,6 +235,10 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         return;
     }
     if (newLocationMode && event->button() == Qt::LeftButton && model) {
+        if (!model->editorState.capabilities.allowLocationCreateDelete) {
+            event->accept();
+            return;
+        }
         graphwidget_locations::handleNewLocationMode(this, event);
         return;
     }
@@ -262,11 +275,14 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
             if (graphwidget_helpers::isPointOnLocation(
             mouseCanvas,
                 loc, &model->sceneModel)) {
-                draggingDot = id;
-                dragOffset = mouseScene - QPointF(loc.coordX, loc.coordY);
-                setCursor(Qt::OpenHandCursor);
-                event->accept();
-                return;
+                if (model->editorState.capabilities.allowLocationMove) {
+                    draggingDot = id;
+                    dragOffset = mouseScene - QPointF(loc.coordX, loc.coordY);
+                    setCursor(Qt::OpenHandCursor);
+                    event->accept();
+                    return;
+                }
+                break;
             }
         }
     }
@@ -520,7 +536,10 @@ void GraphWidget::keyPressEvent(QKeyEvent *event)
         }
     }
 
-    if (event->key() == Qt::Key_Shift && edgeCreationState == EdgeCreationState::None) {
+    if (event->key() == Qt::Key_Shift
+        && edgeCreationState == EdgeCreationState::None
+        && model
+        && model->editorState.capabilities.allowEdgeCreateDelete) {
         startEdgeCreation();
         event->accept();
         return;
@@ -531,7 +550,9 @@ void GraphWidget::keyPressEvent(QKeyEvent *event)
         event->accept();
         return;
     }
-    if (event->key() == Qt::Key_Control) {
+    if (event->key() == Qt::Key_Control
+        && model
+        && model->editorState.capabilities.allowLocationCreateDelete) {
         setNewLocationMode(true);
     }
     QGraphicsView::keyPressEvent(event);

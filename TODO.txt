@@ -8,8 +8,8 @@ UI
 - Shadow copy of location values
 - Shadow copy of edge values
 - Location names are a bit shrinked from the bottom
+- Add Start & Finish locations
+- Location type change
 
 Domain
 
-- Multiple descriptions in location (remove or complete)
-- Edge priority: the order of edges as they appear as actions
