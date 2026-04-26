@@ -23,7 +23,11 @@ void handleNewLocationMode(GraphWidget* w, QMouseEvent* event) {
         w->model->gameDef.locations[newId] = loc;
     }
     if (newId != -1) {
-        graphwidget_helpers::editLocationDialog(w->model, newId, w, [w]() { w->viewport()->update(); });
+        const bool accepted = graphwidget_helpers::editLocationDialog(w->model, newId, w, [w]() { w->viewport()->update(); });
+        if (!accepted) {
+            w->model->manager.deleteLocation(newId);
+            w->viewport()->update();
+        }
     }
     event->accept();
 }

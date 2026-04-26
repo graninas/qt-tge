@@ -40,7 +40,7 @@ int findEdgeAtMouse(const UiModel* model, const QPoint& mousePos, const SceneMod
 QPointF mouseToScene(const QPoint& mousePos, const SceneModel* sceneModel);
 
 // Opens the LocationDialog for the given location id, updates label and descriptions if accepted
-void editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::function<void()> onUpdate = nullptr);
+bool editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::function<void()> onUpdate = nullptr);
 }
 
 #endif // GRAPHWIDGET_HELPERS_H

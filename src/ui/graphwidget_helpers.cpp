@@ -477,8 +477,11 @@ QPointF mouseToScene(const QPoint& mousePos, const SceneModel* sceneModel) {
     return sceneModel->widgetToScene(mousePos);
 }
 
-void editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::function<void()> onUpdate) {
-    if (!model) return;
+bool editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::function<void()> onUpdate) {
+    if (!model || !model->gameDef.locations.contains(locationId)) {
+        return false;
+    }
+
     LocationDialog dlg(&model->gameDef.locations[locationId], &model->manager, parent);
     if (dlg.exec() == QDialog::Accepted) {
         model->gameDef.locations[locationId].label = dlg.label();
@@ -487,6 +490,9 @@ void editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::fu
         descPack.clear();
         for (const auto& d : descs) descPack.append(d);
         if (onUpdate) onUpdate();
+        return true;
     }
+
+    return false;
 }
 } // namespace graphwidget_helpers
