@@ -26,17 +26,18 @@ struct PendingVariableChange {
     QString newValue;
 };
 
-struct PendingInfoDisplayItemChange {
-    int itemIndex = 0;
-    const domain::InfoDisplayItemDef* def = nullptr;
-    bool changePriority = false;
-    int newPriority = 0;
-    bool changeVisibility = false;
-    bool newVisibility = false;
-    bool changeShowValue = false;
-    bool newShowValue = false;
-    bool changeValue = false;
-    std::string newValue;
+struct PendingInfoDisplayItemChange
+{
+  int itemIndex = 0;
+  const domain::InfoDisplayItemDef *def = nullptr;
+  bool changePriority = false;
+  int newPriority = 0;
+  bool changeVisibility = false;
+  bool newVisibility = false;
+  bool changeShowValue = false;
+  bool newShowValue = false;
+  bool changeValue = false;
+  std::string newValue;
 };
 
 struct CurrentLocation {
@@ -404,14 +405,6 @@ private:
                 newChange.def = item.def;
                 pendingItemChanges.append(newChange);
                 pendingChange = &pendingItemChanges.last();
-            }
-
-            if (pendingChange->changeValue) {
-                if (pendingChange->newValue != projectedValue.toStdString()) {
-                    debugMessages.append(QString("Info item %1 keeps explicit pending value instead of formula recalculation.")
-                                             .arg(item.def->id));
-                }
-                continue;
             }
 
             pendingChange->changeValue = true;
