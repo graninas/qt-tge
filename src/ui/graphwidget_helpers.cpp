@@ -531,6 +531,7 @@ bool editEdgeDialog(UiModel* model, int edgeId, QWidget* parent, std::function<v
         edgeToUpdate.variableSettings = dlg.variableSettings();
         edgeToUpdate.infoDisplayItemSettings = dlg.infoDisplayItemSettings();
         edgeToUpdate.color = dlg.edgeColor();
+        edgeToUpdate.priority = dlg.edgePriority();
         if (onUpdate) onUpdate();
         return true;
     }

@@ -48,6 +48,7 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
     , m_infoDisplayNewValueEdit(nullptr)
     , m_infoDisplayNewValueStatusLabel(nullptr)
     , m_infoDisplayOverallStatusLabel(nullptr)
+    , m_prioritySpin(nullptr)
     , m_selectedColor(edge.color)
 {
     for (const auto& setting : edge.variableSettings) {
@@ -122,6 +123,19 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
 
     m_conditionStatusLabel = new QLabel(this);
     layout->addWidget(m_conditionStatusLabel);
+
+    {
+        QHBoxLayout* priorityRow = new QHBoxLayout();
+        priorityRow->addWidget(new QLabel(tr("Priority:"), this));
+        m_prioritySpin = new QSpinBox(this);
+        m_prioritySpin->setMinimum(-1000000000);
+        m_prioritySpin->setMaximum(1000000000);
+        m_prioritySpin->setValue(edge.priority);
+        m_prioritySpin->setToolTip(tr("Edge display/selection priority. Lower value = shown first."));
+        priorityRow->addWidget(m_prioritySpin);
+        priorityRow->addStretch();
+        layout->addLayout(priorityRow);
+    }
 
     QTabWidget* settingsTabs = new QTabWidget(this);
 
@@ -385,6 +399,10 @@ QVector<tge::domain::EdgeInfoDisplayItemSettingDef> EdgeDialog::infoDisplayItemS
 
 int EdgeDialog::edgeColor() const {
     return m_selectedColor;
+}
+
+int EdgeDialog::edgePriority() const {
+    return m_prioritySpin->value();
 }
 
 void EdgeDialog::updateValidation() {

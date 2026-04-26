@@ -69,6 +69,7 @@ struct EdgeDef {
     QVector<EdgeVariableSettingDef> variableSettings; // Variable settings applied when this edge is taken
     QVector<EdgeInfoDisplayItemSettingDef> infoDisplayItemSettings; // Info display item settings applied when this edge is taken
     int color = LOCATION_COLOR_NONE; // Palette index, -1 means default edge color
+    int priority = 0; // Display/selection priority; lower value = shown first
 };
 
 // Location definition

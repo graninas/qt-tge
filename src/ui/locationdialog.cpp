@@ -167,6 +167,7 @@ void LocationDialog::onEdgeItemClicked(QListWidgetItem* item) {
         edge.variableSettings = dlg.variableSettings();
         edge.infoDisplayItemSettings = dlg.infoDisplayItemSettings();
         edge.color = dlg.edgeColor();
+        edge.priority = dlg.edgePriority();
         populateEdgeList();
     }
 }

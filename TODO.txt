@@ -2,8 +2,6 @@ TODOs:
 
 UI
 
-- Middle click on edge opens edit dialog
-
 - Improve dialog appearance (size, layout, UX)
 - Copy and paste for locations
 - Copy and paste for edges

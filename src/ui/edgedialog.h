@@ -43,6 +43,7 @@ public:
     QVector<tge::domain::EdgeVariableSettingDef> variableSettings() const;
     QVector<tge::domain::EdgeInfoDisplayItemSettingDef> infoDisplayItemSettings() const;
     int edgeColor() const;
+    int edgePriority() const;
 private:
     void updateValidation();
     void onColorButtonClicked(int id);
@@ -106,5 +107,6 @@ private:
     QLabel* m_infoDisplayNewValueStatusLabel;
     QLabel* m_infoDisplayOverallStatusLabel;
 
+    QSpinBox* m_prioritySpin;
     int m_selectedColor;
 };
