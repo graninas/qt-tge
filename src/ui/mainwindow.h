@@ -22,7 +22,6 @@ public:
     ~MainWindow();
 
 private slots:
-    void onNewLocationMode();
     void onEditGlobalVariables();
     void onEditInfoDisplayItems();
     void updateSelectionSummary(int locationCount, int edgeCount);
@@ -30,7 +29,6 @@ private slots:
 private:
     Ui::MainWindow *ui;
     GraphWidget *graphWidget; // Pointer to the graph widget
-    QToolButton *newLocationButton; // Button for new location mode
     QToolButton *globalVariablesButton; // Button for global variables editor
     QToolButton *infoDisplayItemsButton; // Button for info display items editor
     QLabel *selectionSummaryLabel = nullptr;

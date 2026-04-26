@@ -26,13 +26,6 @@ MainWindow::MainWindow(QWidget *parent)
     QToolBar *toolBar = new QToolBar("Toolbox", this);
     addToolBar(Qt::LeftToolBarArea, toolBar);
 
-    newLocationButton = new QToolButton(this);
-    newLocationButton->setText("New Location");
-    newLocationButton->setCheckable(true);
-    newLocationButton->setToolTip("Add new location");
-    toolBar->addWidget(newLocationButton);
-    connect(newLocationButton, &QToolButton::clicked, this, &MainWindow::onNewLocationMode);
-
     globalVariablesButton = new QToolButton(this);
     globalVariablesButton->setText("Global Variables");
     globalVariablesButton->setToolTip("Edit global variable definitions");
@@ -49,12 +42,6 @@ MainWindow::MainWindow(QWidget *parent)
     selectionSummaryLabel->setToolTip("Selected locations and edges");
     toolBar->addWidget(selectionSummaryLabel);
     updateSelectionSummary(model->selectedLocationIds.size(), model->selectedEdgeIds.size());
-}
-
-void MainWindow::onNewLocationMode()
-{
-    const bool enabled = newLocationButton->isChecked();
-    graphWidget->setNewLocationMode(enabled);
 }
 
 void MainWindow::onEditGlobalVariables()
