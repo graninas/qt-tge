@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
     }
 
     // Initialize game state
-    GameInitializer initializer(game);
+    GameInitializer initializer(game, GameMode::Normal);
     GameInitResult result = initializer.initialize();
     if (!result.state.has_value()) {
         std::cerr << "Test failed: Initialization error: ";

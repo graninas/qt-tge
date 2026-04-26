@@ -32,8 +32,13 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    game.globalVariables.append({"P1", "Health", "Player health", VarType::Integer, "100"});
+    game.globalVariables.append({"P2", "Gold", "Player gold", VarType::Integer, "7"});
+    game.infoDisplayItems.append({1, "Health", "[P1]", InfoDisplayItemMode::Actual, 10, true, true});
+    game.infoDisplayItems.append({2, "Debug Gold", "[P2]", InfoDisplayItemMode::Debug, 20, true, true});
+
     // Initialize game state
-    GameInitializer initializer(game);
+    GameInitializer initializer(game, GameMode::Normal);
     GameInitResult result = initializer.initialize();
     if (!result.state.has_value()) {
         std::cerr << "Test failed: Initialization error: ";
@@ -64,6 +69,49 @@ int main(int argc, char *argv[])
         std::cerr << "Test failed: Could not find start or finish location by type." << std::endl;
         return 1;
     }
+    if (state_.variables.size() != 2) {
+        std::cerr << "Test failed: Expected 2 initialized variables, got " << state_.variables.size() << std::endl;
+        return 1;
+    }
+    if (!state_.variables[0].def || state_.variables[0].value != "100") {
+        std::cerr << "Test failed: Variable P1 was not initialized from defaultValue." << std::endl;
+        return 1;
+    }
+    if (!state_.variables[1].def || state_.variables[1].value != "7") {
+        std::cerr << "Test failed: Variable P2 was not initialized from defaultValue." << std::endl;
+        return 1;
+    }
+
+    if (state_.infoDisplayItems.size() != 2) {
+        std::cerr << "Test failed: Expected 2 initialized info display items, got " << state_.infoDisplayItems.size() << std::endl;
+        return 1;
+    }
+    if (!state_.infoDisplayItems[0].def || !state_.infoDisplayItems[0].visible || !state_.infoDisplayItems[0].allowVisibilityChanges) {
+        std::cerr << "Test failed: Actual info item visibility in Normal mode is incorrect." << std::endl;
+        return 1;
+    }
+    if (!state_.infoDisplayItems[1].def || state_.infoDisplayItems[1].visible || state_.infoDisplayItems[1].allowVisibilityChanges) {
+        std::cerr << "Test failed: Debug info item must be hidden and locked in Normal mode." << std::endl;
+        return 1;
+    }
+
+    GameInitializer debugInitializer(game, GameMode::Debug);
+    GameInitResult debugResult = debugInitializer.initialize();
+    if (!debugResult.state.has_value()) {
+        std::cerr << "Test failed: Debug initialization error: "
+                  << debugResult.error.value_or("Unknown error").toStdString() << std::endl;
+        return 1;
+    }
+    GameState debugState = std::move(debugResult.state.value());
+    if (debugState.infoDisplayItems.size() != 2) {
+        std::cerr << "Test failed: Expected 2 debug info display items, got " << debugState.infoDisplayItems.size() << std::endl;
+        return 1;
+    }
+    if (!debugState.infoDisplayItems[0].visible || debugState.infoDisplayItems[0].allowVisibilityChanges ||
+        !debugState.infoDisplayItems[1].visible || debugState.infoDisplayItems[1].allowVisibilityChanges) {
+        std::cerr << "Test failed: In Debug mode all info items must be visible and visibility-locked." << std::endl;
+        return 1;
+    }
     // Old logic: no longer valid
     // Check that the start location has one outgoing edge
     // if (dynStart->outgoingEdges.size() != 1) {
@@ -83,6 +131,6 @@ int main(int argc, char *argv[])
     //     std::cerr << "Test failed: Dynamic edge does not reference correct static edge." << std::endl;
     //     return 1;
     // }
-    std::cout << "Player runtime test passed: " << state_.locations.size() << " locations created and interconnected correctly." << std::endl;
+    std::cout << "Player runtime test passed: dynamic states and mode-specific initialization are correct." << std::endl;
     return 0;
 }

@@ -32,8 +32,8 @@ struct FinishLocation {
 
 class Engine {
 public:
-    Engine(const domain::GameDef& gameDef)
-        : m_gameDef(gameDef), m_initializer(gameDef) {
+    Engine(const domain::GameDef& gameDef, GameMode mode = GameMode::Normal)
+        : m_gameDef(gameDef), m_initializer(gameDef, mode) {
         GameInitResult result = m_initializer.initialize();
         if (result.state.has_value()) {
             m_state = std::move(result.state.value());

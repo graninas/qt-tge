@@ -17,7 +17,8 @@ struct GameInitResult {
 
 class GameInitializer {
 public:
-    GameInitializer(const domain::GameDef& gameDef) : m_gameDef(gameDef) {}
+    GameInitializer(const domain::GameDef& gameDef, GameMode mode)
+        : m_gameDef(gameDef), m_mode(mode) {}
 
     GameInitResult initialize() {
         GameInitResult result;
@@ -30,6 +31,12 @@ public:
 
         // Step 1: Create all LocationState objects
         for (auto it = m_gameDef.locations.begin(); it != m_gameDef.locations.end(); ++it) {
+            if (it.key() != it.value().id) {
+                result.error = QString("Location map key %1 does not match location.id %2")
+                                   .arg(it.key())
+                                   .arg(it.value().id);
+                return result;
+            }
             const auto& locDef = it.value();
             auto locState = std::make_unique<LocationState>();
             locState->def = &locDef;
@@ -42,11 +49,68 @@ public:
 
         // Step 2: Create all EdgeState objects
         for (auto it = m_gameDef.edges.begin(); it != m_gameDef.edges.end(); ++it) {
+            if (it.key() != it.value().id) {
+                result.error = QString("Edge map key %1 does not match edge.id %2")
+                                   .arg(it.key())
+                                   .arg(it.value().id);
+                return result;
+            }
             const auto& edgeDef = it.value();
+            if (m_gameDef.locations.find(edgeDef.fromLocation) == m_gameDef.locations.end()) {
+                result.error = QString("Edge %1 has unknown fromLocation %2")
+                                   .arg(edgeDef.id)
+                                   .arg(edgeDef.fromLocation);
+                return result;
+            }
+            if (m_gameDef.locations.find(edgeDef.toLocation) == m_gameDef.locations.end()) {
+                result.error = QString("Edge %1 has unknown toLocation %2")
+                                   .arg(edgeDef.id)
+                                   .arg(edgeDef.toLocation);
+                return result;
+            }
             auto edgeState = std::make_unique<EdgeState>();
             edgeState->def = &edgeDef;
             int edgeId = edgeDef.id;
             state.edges.emplace(edgeId, std::move(edgeState));
+        }
+
+        // Step 3: Initialize global variables
+        state.variables.reserve(static_cast<size_t>(m_gameDef.globalVariables.size()));
+        for (const auto& variableDef : m_gameDef.globalVariables) {
+            VariableState variableState;
+            variableState.def = &variableDef;
+            variableState.value = variableDef.defaultValue;
+            state.variables.push_back(variableState);
+        }
+
+        // Step 4: Initialize info display item states
+        state.infoDisplayItems.reserve(static_cast<size_t>(m_gameDef.infoDisplayItems.size()));
+        for (const auto& itemDef : m_gameDef.infoDisplayItems) {
+            InfoDisplayItemState itemState;
+            itemState.def = &itemDef;
+            itemState.value = "";
+            itemState.priority = itemDef.priority;
+            itemState.showFormulaValue = itemDef.showFormulaValue;
+
+            if (m_mode == GameMode::Debug) {
+                itemState.visible = true;
+                itemState.allowVisibilityChanges = false;
+            } else {
+                if (itemDef.mode == domain::InfoDisplayItemMode::Debug) {
+                    itemState.visible = false;
+                    itemState.allowVisibilityChanges = false;
+                } else {
+                    itemState.visible = itemDef.isVisible;
+                    itemState.allowVisibilityChanges = true;
+                }
+            }
+
+            state.infoDisplayItems.push_back(itemState);
+        }
+
+        if (!state.startLocation) {
+            result.error = QString("GameDef must contain a Start location");
+            return result;
         }
 
         result.state = std::move(state);
@@ -55,6 +119,7 @@ public:
 
 private:
     const domain::GameDef& m_gameDef;
+    GameMode m_mode;
 };
 
 } // namespace runtime

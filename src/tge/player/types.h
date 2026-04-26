@@ -11,6 +11,8 @@
 namespace tge {
 namespace player {
 
+enum class GameMode { Normal, Debug };
+
 // Forward declarations for static types
 using tge::domain::VariableDef;
 using tge::domain::LocationDef;
@@ -27,6 +29,8 @@ struct InfoDisplayItemState {
   std::string value;
   bool visible;
   int priority;
+    bool showFormulaValue;
+    bool allowVisibilityChanges;
 };
 
 // Dynamic edge state
