@@ -5,7 +5,7 @@
 #include <unordered_map>
 #include <QString>
 #include <memory>
-#include "../../tge/domain.h"
+#include "../domain.h"
 
 namespace tge {
 namespace player {
@@ -29,7 +29,6 @@ struct EdgeState {
 // Dynamic location state
 struct LocationState {
     const LocationDef* def;
-    std::vector<VariableState> localVariables;
 };
 
 // Dynamic game state

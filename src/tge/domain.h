@@ -63,7 +63,6 @@ struct LocationDef {
     int id;
     LocationType type;
     QString description;
-    QVector<VariableDef> localVariables;
     QVector<int> outgoingEdges;
     QVector<int> incomingEdges;
     // UX domain model fields (editor only)

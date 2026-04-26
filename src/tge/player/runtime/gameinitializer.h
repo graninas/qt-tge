@@ -33,12 +33,6 @@ public:
             const auto& locDef = it.value();
             auto locState = std::make_unique<LocationState>();
             locState->def = &locDef;
-            for (const auto& varDef : locDef.localVariables) {
-                VariableState varState;
-                varState.def = &varDef;
-                varState.value = "";
-                locState->localVariables.push_back(varState);
-            }
             int locId = locDef.id;
             if (!state.startLocation && locDef.type == domain::LocationType::Start) {
                 state.startLocation = locState.get();

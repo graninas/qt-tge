@@ -58,6 +58,9 @@ public:
         return result;
     }
 
+    // Given a CurrentLocation and the game state, return available transitions
+    // TODO
+
     // Given a CurrentLocation and an edge id, return the transition info
     std::optional<CurrentTransition> choose(const CurrentLocation& current, int edgeId) {
         // Edge not found
@@ -71,40 +74,7 @@ public:
 
     // Given a CurrentTransition, return the next CurrentLocation or FinishLocation
     std::variant<CurrentLocation, FinishLocation> step(const CurrentTransition& transition) {
-        if (!transition.nextLocation) {
-            FinishLocation finish;
-            finish.location = nullptr;
-            finish.description = "No next location (end of path).";
-            finish.debugMessages = transition.debugMessages;
-            finish.debugMessages.append("No next location pointer in transition.");
-            return finish;
-        }
-        const LocationState* loc = transition.nextLocation;
-        if (!loc->def) {
-            FinishLocation finish;
-            finish.location = loc;
-            finish.description = "No static definition for next location.";
-            finish.debugMessages = transition.debugMessages;
-            finish.debugMessages.append("No static definition for next location.");
-            return finish;
-        }
-        if (loc->def->type == domain::LocationType::Finish) {
-            FinishLocation finish;
-            finish.location = loc;
-            finish.description = loc->def->description;
-            finish.debugMessages = transition.debugMessages;
-            finish.debugMessages.append("Arrived at finish location.");
-            return finish;
-        } else {
-            CurrentLocation next;
-            next.location = loc;
-            next.description = loc->def->description;
-            next.debugMessages = transition.debugMessages;
-            for (const auto* edge : loc->outgoingEdges) {
-                next.options.append(edge);
-            }
-            return next;
-        }
+        throw std::logic_error("Not implemented");
     }
 
 private:
