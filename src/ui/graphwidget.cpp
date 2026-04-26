@@ -474,15 +474,21 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
     if (event->button() == Qt::LeftButton && model) {
         int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), &model->sceneModel);
         if (id != -1) {
+            // The preceding mouseReleaseEvent already toggled selection — undo it.
+            toggleSelectionAtPosition(event->pos());
             graphwidget_locations::handleLocationEdit(this, id);
             event->accept();
             return;
         }
 
         int edgeId = graphwidget_helpers::findEdgeAtMouse(model, event->pos(), &model->sceneModel);
-        if (edgeId != -1 && tryEditEdgeAtPosition(event->pos())) {
-            event->accept();
-            return;
+        if (edgeId != -1) {
+            // The preceding mouseReleaseEvent already toggled selection — undo it.
+            toggleSelectionAtPosition(event->pos());
+            if (tryEditEdgeAtPosition(event->pos())) {
+                event->accept();
+                return;
+            }
         }
     }
     QGraphicsView::mouseDoubleClickEvent(event);
