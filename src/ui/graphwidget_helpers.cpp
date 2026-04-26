@@ -523,7 +523,8 @@ bool editEdgeDialog(UiModel* model, int edgeId, QWidget* parent, std::function<v
                    model->gameDef.globalVariables,
                    model->gameDef.infoDisplayItems,
                    parent);
-    if (dlg.exec() == QDialog::Accepted) {
+    const bool accepted = (dlg.exec() == QDialog::Accepted);
+    if (accepted) {
         auto& edgeToUpdate = model->gameDef.edges[edgeId];
         edgeToUpdate.optionText = dlg.optionText();
         edgeToUpdate.transitionText = dlg.transitionText();
@@ -532,11 +533,9 @@ bool editEdgeDialog(UiModel* model, int edgeId, QWidget* parent, std::function<v
         edgeToUpdate.infoDisplayItemSettings = dlg.infoDisplayItemSettings();
         edgeToUpdate.color = dlg.edgeColor();
         edgeToUpdate.priority = dlg.edgePriority();
-        if (onUpdate) onUpdate();
-        return true;
     }
-
-    return false;
+    if (onUpdate) onUpdate();
+    return accepted;
 }
 
 bool editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::function<void()> onUpdate) {
@@ -545,16 +544,15 @@ bool editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::fu
     }
 
     LocationDialog dlg(&model->gameDef.locations[locationId], &model->manager, parent);
-    if (dlg.exec() == QDialog::Accepted) {
+    const bool accepted = (dlg.exec() == QDialog::Accepted);
+    if (accepted) {
         model->gameDef.locations[locationId].label = dlg.label();
         auto descs = dlg.descriptions();
         auto& descPack = model->gameDef.locations[locationId].descriptionPack.descriptions;
         descPack.clear();
         for (const auto& d : descs) descPack.append(d);
-        if (onUpdate) onUpdate();
-        return true;
     }
-
-    return false;
+    if (onUpdate) onUpdate();
+    return accepted;
 }
 } // namespace graphwidget_helpers
