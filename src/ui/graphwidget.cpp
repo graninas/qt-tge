@@ -19,6 +19,33 @@
 #include <QKeyEvent>
 #include "graphwidget_errors.h"
 
+bool GraphWidget::tryEditEdgeAtPosition(const QPoint& position)
+{
+    if (!model) {
+        return false;
+    }
+
+    int edgeId = graphwidget_helpers::findEdgeAtMouse(model, position, &model->sceneModel);
+    if (edgeId == -1) {
+        return false;
+    }
+
+    auto edgeIt = model->gameDef.edges.find(edgeId);
+    if (edgeIt == model->gameDef.edges.end()) {
+        return false;
+    }
+
+    const auto& edge = edgeIt.value();
+    auto fromIt = model->gameDef.locations.find(edge.fromLocation);
+    auto toIt = model->gameDef.locations.find(edge.toLocation);
+    if (fromIt == model->gameDef.locations.end() || toIt == model->gameDef.locations.end()) {
+        return false;
+    }
+
+    graphwidget_helpers::editEdgeDialog(model, edgeId, this, [this]() { viewport()->update(); });
+    return true;
+}
+
 GraphWidget::GraphWidget(QWidget *parent)
     : QGraphicsView(parent)
 {
@@ -118,6 +145,11 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         int id = graphwidget_helpers::findLocationAtMouse(model, event->pos(), &model->sceneModel);
         if (id != -1) {
             graphwidget_locations::handleLocationEdit(this, id);
+            event->accept();
+            return;
+        }
+
+        if (tryEditEdgeAtPosition(event->pos())) {
             event->accept();
             return;
         }
@@ -329,18 +361,9 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
         }
 
         int edgeId = graphwidget_helpers::findEdgeAtMouse(model, event->pos(), &model->sceneModel);
-        if (edgeId != -1) {
-            auto edgeIt = model->gameDef.edges.find(edgeId);
-            if (edgeIt != model->gameDef.edges.end()) {
-                const auto& edge = edgeIt.value();
-                auto fromIt = model->gameDef.locations.find(edge.fromLocation);
-                auto toIt = model->gameDef.locations.find(edge.toLocation);
-                if (fromIt != model->gameDef.locations.end() && toIt != model->gameDef.locations.end()) {
-                    graphwidget_helpers::editEdgeDialog(model, edgeId, this, [this]() { viewport()->update(); });
-                    event->accept();
-                    return;
-                }
-            }
+        if (edgeId != -1 && tryEditEdgeAtPosition(event->pos())) {
+            event->accept();
+            return;
         }
     }
     QGraphicsView::mouseDoubleClickEvent(event);

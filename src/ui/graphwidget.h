@@ -53,6 +53,7 @@ protected:
 private:
     void centerOnObservedVirtualPoint();
     void updateCursor();
+    bool tryEditEdgeAtPosition(const QPoint& position);
 
     bool rightButtonPressed = false;
     QPoint lastMousePos;
