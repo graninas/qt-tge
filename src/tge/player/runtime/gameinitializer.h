@@ -4,6 +4,7 @@
 #include <QString>
 #include <optional>
 #include "../../domain.h"
+#include "../../formula/parser.h"
 #include "../types.h"
 
 namespace tge {
@@ -70,6 +71,15 @@ public:
             }
             auto edgeState = std::make_unique<EdgeState>();
             edgeState->def = &edgeDef;
+            edgeState->conditionFormula = parseFormula(edgeDef.condition);
+            edgeState->variableSettings.reserve(static_cast<size_t>(edgeDef.variableSettings.size()));
+            for (const auto& settingDef : edgeDef.variableSettings) {
+                EdgeVariableSettingState settingState;
+                settingState.def = &settingDef;
+                settingState.conditionFormula = parseFormula(settingDef.edgeVariableCondition);
+                settingState.newValueFormula = parseFormula(settingDef.newValueFormula);
+                edgeState->variableSettings.push_back(std::move(settingState));
+            }
             int edgeId = edgeDef.id;
             state.edges.emplace(edgeId, std::move(edgeState));
         }
@@ -91,6 +101,7 @@ public:
             itemState.value = "";
             itemState.priority = itemDef.priority;
             itemState.showFormulaValue = itemDef.showFormulaValue;
+            itemState.valueFormula = parseFormula(itemDef.valueFormula);
 
             if (m_mode == GameMode::Debug) {
                 itemState.visible = true;
@@ -118,6 +129,23 @@ public:
     }
 
 private:
+    static ParsedFormulaState parseFormula(const QString& formulaText) {
+        ParsedFormulaState parsed;
+        const QString trimmed = formulaText.trimmed();
+        if (trimmed.isEmpty()) {
+            return parsed;
+        }
+
+        const tge::formula::ParseResult result = tge::formula::parse(trimmed.toStdString());
+        if (!result.error.empty()) {
+            parsed.parseError = QString::fromStdString(result.error);
+            return parsed;
+        }
+
+        parsed.ast = result.ast;
+        return parsed;
+    }
+
     const domain::GameDef& m_gameDef;
     GameMode m_mode;
 };

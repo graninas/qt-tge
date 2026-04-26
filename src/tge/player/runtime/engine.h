@@ -124,9 +124,14 @@ public:
         }
         result.nextLocation = nextLocationIt->second.get();
 
-        for (const auto& setting : selected->edge->def->variableSettings) {
+        for (const auto& settingState : selected->edge->variableSettings) {
+            if (!settingState.def) {
+                continue;
+            }
+
+            const auto& setting = *settingState.def;
             QString conditionError;
-            if (!evaluateCondition(setting.edgeVariableCondition, &conditionError)) {
+            if (!evaluateCondition(settingState.conditionFormula, &conditionError)) {
                 if (!conditionError.isEmpty()) {
                     result.debugMessages.append(QString("Variable setting P%1 condition error: %2")
                                                     .arg(setting.variableIndex)
@@ -146,7 +151,7 @@ public:
             }
 
             QString formulaError;
-            const QString newValue = evaluateValueFormula(setting.newValueFormula, &formulaError);
+            const QString newValue = evaluateValueFormula(settingState.newValueFormula, &formulaError);
             if (!formulaError.isEmpty()) {
                 result.debugMessages.append(QString("Variable setting P%1 evaluation error: %2")
                                                 .arg(setting.variableIndex)
@@ -299,13 +304,18 @@ private:
         return params;
     }
 
-    bool evaluateCondition(const QString& formulaText, QString* error = nullptr) const {
-        const QString trimmed = formulaText.trimmed();
-        if (trimmed.isEmpty()) {
+    bool evaluateCondition(const ParsedFormulaState& formula, QString* error = nullptr) const {
+        if (!formula.parseError.isEmpty()) {
+            if (error) {
+                *error = formula.parseError;
+            }
+            return false;
+        }
+        if (!formula.ast) {
             return true;
         }
         try {
-            return tge::formula::parseAndEvaluateExpression(trimmed.toStdString(), buildFormulaParams()) != 0;
+            return tge::formula::evaluateAST(formula.ast, buildFormulaParams()) != 0;
         } catch (const std::exception& exception) {
             if (error) {
                 *error = QString::fromStdString(exception.what());
@@ -314,19 +324,24 @@ private:
         }
     }
 
-    QString evaluateValueFormula(const QString& formulaText, QString* error = nullptr) const {
-        return evaluateValueFormula(formulaText, buildFormulaParams(), error);
+    QString evaluateValueFormula(const ParsedFormulaState& formula, QString* error = nullptr) const {
+        return evaluateValueFormula(formula, buildFormulaParams(), error);
     }
 
-    QString evaluateValueFormula(const QString& formulaText,
+    QString evaluateValueFormula(const ParsedFormulaState& formula,
                                  const std::map<std::string, int>& params,
                                  QString* error = nullptr) const {
-        const QString trimmed = formulaText.trimmed();
-        if (trimmed.isEmpty()) {
+        if (!formula.parseError.isEmpty()) {
+            if (error) {
+                *error = formula.parseError;
+            }
+            return "";
+        }
+        if (!formula.ast) {
             return "";
         }
         try {
-            const int value = tge::formula::parseAndEvaluateExpression(trimmed.toStdString(), params);
+            const int value = tge::formula::evaluateAST(formula.ast, params);
             return QString::number(value);
         } catch (const std::exception& exception) {
             if (error) {
@@ -385,7 +400,7 @@ private:
             }
 
             QString formulaError;
-            const QString projectedValue = evaluateValueFormula(item.def->valueFormula, projectedParams, &formulaError);
+            const QString projectedValue = evaluateValueFormula(item.valueFormula, projectedParams, &formulaError);
             if (!formulaError.isEmpty()) {
                 debugMessages.append(QString("Info item %1 formula recalculation error: %2")
                                          .arg(item.def->id)
@@ -418,7 +433,7 @@ private:
                 continue;
             }
             QString formulaError;
-            item.value = evaluateValueFormula(item.def->valueFormula, &formulaError).toStdString();
+            item.value = evaluateValueFormula(item.valueFormula, &formulaError).toStdString();
             if (!formulaError.isEmpty()) {
                 return QString("Failed to initialize info item %1: %2")
                     .arg(item.def->id)
@@ -456,23 +471,26 @@ private:
             option.isAvailable = true;
 
             QString conditionError;
-            if (!evaluateCondition(option.edge->def->condition, &conditionError)) {
+            if (!evaluateCondition(option.edge->conditionFormula, &conditionError)) {
                 option.isAvailable = false;
                 if (!conditionError.isEmpty()) {
                     option.debugMessages.append(QString("Edge condition error: %1").arg(conditionError));
                 }
             }
 
-            for (const auto& setting : option.edge->def->variableSettings) {
+            for (const auto& settingState : option.edge->variableSettings) {
                 if (!option.isAvailable) {
                     break;
                 }
-                if (!evaluateCondition(setting.edgeVariableCondition, &conditionError)) {
+                if (!settingState.def) {
+                    continue;
+                }
+                if (!evaluateCondition(settingState.conditionFormula, &conditionError)) {
                     option.isAvailable = false;
                     if (!conditionError.isEmpty()) {
                         option.debugMessages.append(
                             QString("Variable condition for P%1 error: %2")
-                                .arg(setting.variableIndex)
+                                .arg(settingState.def->variableIndex)
                                 .arg(conditionError));
                     }
                 }

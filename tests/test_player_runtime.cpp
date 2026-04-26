@@ -39,6 +39,7 @@ int main(int argc, char *argv[])
     game.infoDisplayItems.append({1, "Health", "[P1]", InfoDisplayItemMode::Actual, 10, true, true});
     game.infoDisplayItems.append({2, "Debug Gold", "[P2]", InfoDisplayItemMode::Debug, 20, true, true});
     game.infoDisplayItems.append({3, "Summary", "([P1] + [P2])", InfoDisplayItemMode::Actual, 30, true, true});
+    edge->condition = "([P2] > 0)";
     edge->variableSettings.append({1, "([P1] >= 100)", "([P1] - 10)"});
     edge->infoDisplayItemSettings.append({1, true, 5, true, false, true, false});
 
@@ -87,8 +88,32 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+    const auto edgeStateIt = state_.edges.find(edge->id);
+    if (edgeStateIt == state_.edges.end() || !edgeStateIt->second) {
+        std::cerr << "Test failed: Dynamic edge state was not created." << std::endl;
+        return 1;
+    }
+    if (!edgeStateIt->second->conditionFormula.ast || !edgeStateIt->second->conditionFormula.parseError.isEmpty()) {
+        std::cerr << "Test failed: Edge condition AST was not cached during initialization." << std::endl;
+        return 1;
+    }
+    if (edgeStateIt->second->variableSettings.size() != 1 ||
+        !edgeStateIt->second->variableSettings[0].conditionFormula.ast ||
+        !edgeStateIt->second->variableSettings[0].newValueFormula.ast ||
+        !edgeStateIt->second->variableSettings[0].conditionFormula.parseError.isEmpty() ||
+        !edgeStateIt->second->variableSettings[0].newValueFormula.parseError.isEmpty()) {
+        std::cerr << "Test failed: Variable setting ASTs were not cached during initialization." << std::endl;
+        return 1;
+    }
+
     if (state_.infoDisplayItems.size() != 3) {
         std::cerr << "Test failed: Expected 3 initialized info display items, got " << state_.infoDisplayItems.size() << std::endl;
+        return 1;
+    }
+    if (!state_.infoDisplayItems[0].valueFormula.ast || !state_.infoDisplayItems[2].valueFormula.ast ||
+        !state_.infoDisplayItems[0].valueFormula.parseError.isEmpty() ||
+        !state_.infoDisplayItems[2].valueFormula.parseError.isEmpty()) {
+        std::cerr << "Test failed: Info display formula ASTs were not cached during initialization." << std::endl;
         return 1;
     }
     if (!state_.infoDisplayItems[0].def || !state_.infoDisplayItems[0].visible || !state_.infoDisplayItems[0].allowVisibilityChanges) {

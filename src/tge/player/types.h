@@ -7,6 +7,7 @@
 #include <string>
 #include <memory>
 #include "../domain.h"
+#include "../formula/parser.h"
 
 namespace tge {
 namespace player {
@@ -24,6 +25,17 @@ struct VariableState {
     QString value;
 };
 
+struct ParsedFormulaState {
+    std::shared_ptr<tge::formula::ASTNode> ast;
+    QString parseError;
+};
+
+struct EdgeVariableSettingState {
+    const tge::domain::EdgeVariableSettingDef* def = nullptr;
+    ParsedFormulaState conditionFormula;
+    ParsedFormulaState newValueFormula;
+};
+
 struct InfoDisplayItemState {
   const tge::domain::InfoDisplayItemDef *def;
   std::string value;
@@ -31,11 +43,14 @@ struct InfoDisplayItemState {
   int priority;
     bool showFormulaValue;
     bool allowVisibilityChanges;
+    ParsedFormulaState valueFormula;
 };
 
 // Dynamic edge state
 struct EdgeState {
-    const EdgeDef* def;
+    const EdgeDef* def = nullptr;
+    ParsedFormulaState conditionFormula;
+    std::vector<EdgeVariableSettingState> variableSettings;
 };
 
 // Dynamic location state
