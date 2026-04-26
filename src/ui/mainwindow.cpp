@@ -3,7 +3,7 @@
 #include "graphwidget.h"
 #include "globalvariablesdialog.h"
 #include "infodisplayitemsdialog.h"
-#include "tge/player/runtime/gameinitializer.h"
+#include "playerwidget.h"
 
 #include <QLabel>
 #include <QMessageBox>
@@ -24,9 +24,9 @@ MainWindow::MainWindow(QWidget *parent)
     mainLayout->setSpacing(0);
 
     graphWidget = new GraphWidget(central);
-    playerWidget = new QWidget(central);
+    playerWidget = new PlayerWidget(central);
     playerWidget->setVisible(false);
-    playerWidget->setMinimumHeight(120);
+    playerWidget->setMinimumHeight(800);
 
     mainLayout->addWidget(graphWidget, 2);
     mainLayout->addWidget(playerWidget, 1);
@@ -99,21 +99,20 @@ void MainWindow::onPlayerToggled(bool enabled)
     }
 
     if (enabled) {
-        tge::player::runtime::GameInitializer initializer(model->gameDef, tge::player::GameMode::Normal);
-        auto initResult = initializer.initialize();
-        if (!initResult.state.has_value()) {
+        playerWidget->setGameDef(&model->gameDef);
+        QString startError;
+        if (!playerWidget->startSession(&startError)) {
             QMessageBox::warning(this,
                                  tr("Player initialization failed"),
-                                 initResult.error.value_or(tr("Unknown error")));
+                                 startError.isEmpty() ? tr("Unknown error") : startError);
             playerButton->blockSignals(true);
             playerButton->setChecked(false);
             playerButton->blockSignals(false);
             return;
         }
-        playerState = std::move(initResult.state.value());
         model->editorState.setMode(tge::editor::EditingMode::Player);
     } else {
-        playerState.reset();
+        playerWidget->clearSession();
         model->editorState.setMode(tge::editor::EditingMode::StaticModel);
     }
 

@@ -4,10 +4,10 @@
 #include <QMainWindow>
 #include <QLabel>
 #include <QToolButton>
-#include <optional>
 
 #include "gui_model.h"
-#include "tge/player/types.h"
+
+class PlayerWidget;
 
 namespace Ui {
 class MainWindow;
@@ -34,13 +34,12 @@ private:
 
     Ui::MainWindow *ui;
     GraphWidget *graphWidget; // Pointer to the graph widget
-    QWidget *playerWidget = nullptr;
+    PlayerWidget *playerWidget = nullptr;
     QToolButton *globalVariablesButton; // Button for global variables editor
     QToolButton *infoDisplayItemsButton; // Button for info display items editor
     QToolButton *playerButton = nullptr;
     QLabel *selectionSummaryLabel = nullptr;
     UiModel *model = nullptr;
-    std::optional<tge::player::GameState> playerState;
 };
 
 #endif // MAINWINDOW_H
