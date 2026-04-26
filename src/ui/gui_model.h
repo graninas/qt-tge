@@ -108,6 +108,8 @@ public:
     SceneModel sceneModel;
     AppearanceSettings appearance;
     tge::domain::GameDef gameDef;
+    int selectedLocationId = -1;
+    int selectedEdgeId = -1;
     tge::editor::EditorState editorState;
     tge::editor::IdGenerator idGen;
     tge::editor::runtime::Manager manager;

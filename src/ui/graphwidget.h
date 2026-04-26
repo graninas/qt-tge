@@ -51,8 +51,12 @@ protected:
     void keyReleaseEvent(QKeyEvent *event) override;
 
 private:
+    static constexpr int clickDragThreshold = 4;
+
     void centerOnObservedVirtualPoint();
     void updateCursor();
+    void clearSelection();
+    bool toggleSelectionAtPosition(const QPoint& position);
     bool tryEditEdgeAtPosition(const QPoint& position);
 
     bool rightButtonPressed = false;
@@ -65,6 +69,9 @@ private:
 
     int hoveredLocationId = -1;
     int hoveredEdgeId = -1;
+    QPoint leftPressPos;
+    bool leftPressMoved = false;
+    bool leftPressMayToggleSelection = false;
     QPoint memoCursorPos; // Screen position for memo
     bool newLocationMode = false;
 

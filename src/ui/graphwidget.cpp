@@ -46,6 +46,39 @@ bool GraphWidget::tryEditEdgeAtPosition(const QPoint& position)
     return true;
 }
 
+void GraphWidget::clearSelection()
+{
+    if (!model) {
+        return;
+    }
+
+    model->selectedLocationId = -1;
+    model->selectedEdgeId = -1;
+}
+
+bool GraphWidget::toggleSelectionAtPosition(const QPoint& position)
+{
+    if (!model) {
+        return false;
+    }
+
+    int locationId = graphwidget_helpers::findLocationAtMouse(model, position, &model->sceneModel);
+    if (locationId != -1) {
+        model->selectedLocationId = (model->selectedLocationId == locationId) ? -1 : locationId;
+        model->selectedEdgeId = -1;
+        return true;
+    }
+
+    int edgeId = graphwidget_helpers::findEdgeAtMouse(model, position, &model->sceneModel);
+    if (edgeId != -1) {
+        model->selectedEdgeId = (model->selectedEdgeId == edgeId) ? -1 : edgeId;
+        model->selectedLocationId = -1;
+        return true;
+    }
+
+    return false;
+}
+
 GraphWidget::GraphWidget(QWidget *parent)
     : QGraphicsView(parent)
 {
@@ -162,6 +195,10 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
         return;
     }
     if (event->button() == Qt::LeftButton && model) {
+        leftPressPos = event->pos();
+        leftPressMoved = false;
+        leftPressMayToggleSelection = true;
+
         QPointF mouseCanvas = model->sceneModel.widgetToCanvas(event->pos());
         QPointF mouseScene = model->sceneModel.canvasToScene(mouseCanvas);
         for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
@@ -184,6 +221,10 @@ void GraphWidget::mousePressEvent(QMouseEvent *event)
 void GraphWidget::mouseMoveEvent(QMouseEvent *event)
 {
     memoCursorPos = event->pos();
+
+    if (leftPressMayToggleSelection && (event->buttons() & Qt::LeftButton)) {
+        leftPressMoved = leftPressMoved || (event->pos() - leftPressPos).manhattanLength() > clickDragThreshold;
+    }
 
     if (rightButtonPressed)
     {
@@ -248,10 +289,32 @@ void GraphWidget::mouseReleaseEvent(QMouseEvent *event)
         model->gameDef.locations[draggingDot].coordY = std::round(model->gameDef.locations[draggingDot].coordY);
         draggingDot = -1;
         setCursor(Qt::ArrowCursor);
+
+        const bool shouldToggleSelection = leftPressMayToggleSelection && !leftPressMoved;
+        leftPressMayToggleSelection = false;
+        leftPressMoved = false;
+        if (shouldToggleSelection && toggleSelectionAtPosition(leftPressPos)) {
+            viewport()->update();
+            event->accept();
+            return;
+        }
+
         viewport()->update();
         event->accept();
         return;
     }
+
+    if (event->button() == Qt::LeftButton) {
+        const bool shouldToggleSelection = leftPressMayToggleSelection && !leftPressMoved;
+        leftPressMayToggleSelection = false;
+        leftPressMoved = false;
+        if (shouldToggleSelection && toggleSelectionAtPosition(leftPressPos)) {
+            viewport()->update();
+            event->accept();
+            return;
+        }
+    }
+
     QGraphicsView::mouseReleaseEvent(event);
 }
 
@@ -291,12 +354,13 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
     painter->setRenderHint(QPainter::Antialiasing);
     if (model) {
         graphwidget_helpers::drawGrid(painter, rect, &model->sceneModel);
-        graphwidget_helpers::drawEdges(painter, model, &model->sceneModel, hoveredEdgeId);
+        graphwidget_helpers::drawEdges(painter, model, &model->sceneModel, hoveredEdgeId, model->selectedEdgeId);
         graphwidget_helpers::drawLocations(painter, model, &model->sceneModel,
                                            appearanceSettings.idOffsetY,
                                            appearanceSettings.labelOffsetY,
                                            appearanceSettings.customColorRingWidth,
-                                           hoveredLocationId);
+                                           hoveredLocationId,
+                                           model->selectedLocationId);
         // Draw memo on top if hovering
         auto locIt = model->gameDef.locations.find(hoveredLocationId);
         if (locIt != model->gameDef.locations.end()) {
@@ -371,6 +435,23 @@ void GraphWidget::mouseDoubleClickEvent(QMouseEvent *event)
 
 void GraphWidget::keyPressEvent(QKeyEvent *event)
 {
+    if (event->key() == Qt::Key_Escape) {
+        bool handled = false;
+        if (edgeCreationState != EdgeCreationState::None) {
+            cancelEdgeCreation();
+            handled = true;
+        }
+        if (model && (model->selectedLocationId != -1 || model->selectedEdgeId != -1)) {
+            clearSelection();
+            viewport()->update();
+            handled = true;
+        }
+        if (handled) {
+            event->accept();
+            return;
+        }
+    }
+
     if (event->key() == Qt::Key_Shift && edgeCreationState == EdgeCreationState::None) {
         startEdgeCreation();
         event->accept();

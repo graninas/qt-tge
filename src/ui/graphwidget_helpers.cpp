@@ -181,8 +181,10 @@ static void computeRepellingOffsets(const UiModel* model, std::map<int, double>&
     }
 }
 
-void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int hoveredEdgeId) {
+void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int hoveredEdgeId, int selectedEdgeId) {
     if (!sceneModel) return;
+
+    const QColor selectionColor(255, 140, 0);
 
     std::map<int, double> edgeOffset;
     computeRepellingOffsets(model, edgeOffset);
@@ -213,33 +215,43 @@ void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneM
             }
 
             const bool isHovered = (i == hoveredEdgeId);
-            QColor paintColor = isHovered ? baseColor.darker(130) : baseColor;
-            QPen edgePen(paintColor, isHovered ? 4 : 2);
+            const bool isSelected = (i == selectedEdgeId);
+            QColor paintColor = isSelected ? selectionColor : baseColor;
+            if (isHovered) {
+                paintColor = paintColor.darker(isSelected ? 110 : 130);
+            }
+
+            const qreal penWidth = isSelected ? (isHovered ? 5 : 4) : (isHovered ? 4 : 2);
+            QPen edgePen(paintColor, penWidth);
             painter->setPen(edgePen);
             painter->setBrush(Qt::NoBrush);
 
             QPainterPath path = edgePath(p1, p2, offset);
             painter->drawPath(path);
 
+            const double arrowSize = isSelected ? (isHovered ? 18.0 : 16.0) : (isHovered ? 16.0 : 14.0);
+
             if (std::abs(offset) < 1e-9) {
-                drawArrowHead(painter, p1, p2, 14.0, isHovered ? 16.0 : 14.0, paintColor);
+                drawArrowHead(painter, p1, p2, 14.0, arrowSize, paintColor);
             } else {
                 QPointF ctrl = edgeControlPoint(p1, p2, offset);
-                drawArrowHead(painter, ctrl, p2, 14.0, isHovered ? 16.0 : 14.0, paintColor);
+                drawArrowHead(painter, ctrl, p2, 14.0, arrowSize, paintColor);
             }
         }
     }
 }
 
-void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int customColorRingWidth, int hoveredLocationId) {
+void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int customColorRingWidth, int hoveredLocationId, int selectedLocationId) {
     if (!sceneModel) return;
 
     const double outerRingRadius = 14.0;
     const double innerCircleRadius = 10.0;
     const double defaultRingWidth = 2.0;
+    const double selectionPenWidth = 3.0;
     const double hoverPenWidth = 2.0;
     const double hoverGap = 2.0;
     const double effectiveCustomRingWidth = std::max(1, customColorRingWidth);
+    const QColor selectionColor(255, 140, 0);
 
     for (auto it = model->gameDef.locations.constBegin(); it != model->gameDef.locations.constEnd(); ++it) {
         const auto& loc = it.value();
@@ -267,15 +279,29 @@ void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sc
         painter->setPen(QPen(Qt::black, 2));
         painter->setBrush(QBrush(fillColor));
         painter->drawEllipse(pos, innerCircleRadius, innerCircleRadius);
+
+        const bool isSelected = (selectedLocationId == loc.id);
+        const bool isHovered = (hoveredLocationId == loc.id);
+        const double outerRingOuterRadius = outerRingRadius + ringWidth / 2.0;
+        double highlightOuterRadius = outerRingOuterRadius;
+
+        if (isSelected) {
+            painter->setPen(QPen(selectionColor, selectionPenWidth, Qt::DashLine));
+            painter->setBrush(Qt::NoBrush);
+            const double selectionRadius = highlightOuterRadius + hoverGap + selectionPenWidth / 2.0;
+            painter->drawEllipse(pos, selectionRadius, selectionRadius);
+            highlightOuterRadius = selectionRadius + selectionPenWidth / 2.0;
+        }
+
         // Draw hover effect
-        if (hoveredLocationId == loc.id) {
+        if (isHovered) {
             QPen hoverPen(Qt::darkGreen, hoverPenWidth, Qt::DashLine);
             painter->setPen(hoverPen);
             painter->setBrush(Qt::NoBrush);
-            const double outerRingOuterRadius = outerRingRadius + ringWidth / 2.0;
-            const double hoverRadius = outerRingOuterRadius + hoverGap + hoverPenWidth / 2.0;
+            const double hoverRadius = highlightOuterRadius + hoverGap + hoverPenWidth / 2.0;
             painter->drawEllipse(pos, hoverRadius, hoverRadius);
         }
+
         // Draw id above
         painter->setPen(Qt::black);
         QFont font = painter->font();

@@ -17,12 +17,12 @@ extern const QColor LOCATION_COLOR_PALETTE[LOCATION_COLOR_COUNT];
 void drawGrid(QPainter *painter, const QRectF &rect, const SceneModel* sceneModel);
 
 // Draw all locations using SceneModel for coordinate transformations
-void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int customColorRingWidth, int hoveredLocationId = -1);
+void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int customColorRingWidth, int hoveredLocationId = -1, int selectedLocationId = -1);
 void drawLocationMemo(QPainter* painter, const tge::domain::LocationDef& loc, const QPoint& pos, const QString& typeStr, const QString& desc);
 void drawEdgeMemo(QPainter* painter, const tge::domain::EdgeDef& edge, const QPoint& pos);
 
 // Draw all edges using SceneModel for coordinate transformations
-void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int hoveredEdgeId = -1);
+void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int hoveredEdgeId = -1, int selectedEdgeId = -1);
 void drawArrowHead(QPainter *painter, const QPointF &from, const QPointF &to, double radius = 10.0, double size = 12.0, const QColor& color = Qt::darkGreen);
 
 // Check if canvas point is on location (canvas coordinates, not scene)
