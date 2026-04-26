@@ -45,8 +45,7 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
     , m_newVisibilityCombo(nullptr)
     , m_changeShowValueCheck(nullptr)
     , m_newShowValueCombo(nullptr)
-    , m_infoDisplayNewValueEdit(nullptr)
-    , m_infoDisplayNewValueStatusLabel(nullptr)
+    , m_infoDisplayValueFormulaLabel(nullptr)
     , m_infoDisplayOverallStatusLabel(nullptr)
     , m_prioritySpin(nullptr)
     , m_selectedColor(edge.color)
@@ -210,13 +209,12 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
     m_newShowValueCombo->addItem(tr("Show formula value"), 1);
     infoDisplayEditorLayout->addWidget(m_newShowValueCombo);
 
-    infoDisplayEditorLayout->addWidget(new QLabel(tr("New Value Formula:"), infoDisplayGroup));
-    m_infoDisplayNewValueEdit = new QTextEdit(infoDisplayGroup);
-    m_infoDisplayNewValueEdit->setMaximumHeight(55);
-    infoDisplayEditorLayout->addWidget(m_infoDisplayNewValueEdit);
-
-    m_infoDisplayNewValueStatusLabel = new QLabel(infoDisplayGroup);
-    infoDisplayEditorLayout->addWidget(m_infoDisplayNewValueStatusLabel);
+    infoDisplayEditorLayout->addWidget(new QLabel(tr("Item Value Formula (read-only):"), infoDisplayGroup));
+    m_infoDisplayValueFormulaLabel = new QLabel(infoDisplayGroup);
+    m_infoDisplayValueFormulaLabel->setWordWrap(true);
+    m_infoDisplayValueFormulaLabel->setTextInteractionFlags(Qt::TextSelectableByMouse);
+    m_infoDisplayValueFormulaLabel->setStyleSheet("color: #666;");
+    infoDisplayEditorLayout->addWidget(m_infoDisplayValueFormulaLabel);
 
     m_infoDisplayOverallStatusLabel = new QLabel(infoDisplayGroup);
     infoDisplayEditorLayout->addWidget(m_infoDisplayOverallStatusLabel);
@@ -311,15 +309,6 @@ EdgeDialog::EdgeDialog(const tge::domain::EdgeDef& edge,
         refreshInfoDisplayItemRowCaption(m_currentInfoDisplayRow);
         updateValidation();
     });
-    connect(m_infoDisplayNewValueEdit, &QTextEdit::textChanged, this, [this]() {
-        if (m_loadingInfoDisplayEditors) {
-            return;
-        }
-        saveInfoDisplayItemEditorToCurrentRow();
-        refreshInfoDisplayItemRowCaption(m_currentInfoDisplayRow);
-        updateValidation();
-    });
-
     // Keep internal row trackers in sync with preselected list rows.
     if (!m_globalVariables.isEmpty()) {
         m_currentVariableRow = m_variableList->currentRow();
@@ -384,14 +373,12 @@ QVector<tge::domain::EdgeInfoDisplayItemSettingDef> EdgeDialog::infoDisplayItemS
         }
 
         const auto& setting = it.value();
-        const QString newValue = setting.newValueFormula.trimmed();
-        if (!setting.changePriority && !setting.changeVisibility && !setting.changeShowValue && newValue.isEmpty()) {
+        if (!setting.changePriority && !setting.changeVisibility && !setting.changeShowValue) {
             continue;
         }
 
         tge::domain::EdgeInfoDisplayItemSettingDef out = setting;
         out.itemIndex = itemDef.id;
-        out.newValueFormula = newValue;
         result.append(out);
     }
     return result;
@@ -476,28 +463,6 @@ void EdgeDialog::updateValidation() {
         m_variableOverallStatusLabel->setStyleSheet("color: #b00020;");
     }
 
-    bool selectedInfoDisplayValueOk = true;
-    if (m_currentInfoDisplayRow >= 0 && m_currentInfoDisplayRow < m_infoDisplayItems.size()) {
-        const QString selectedNewValue = m_infoDisplayNewValueEdit->toPlainText().trimmed();
-        if (selectedNewValue.isEmpty()) {
-            m_infoDisplayNewValueStatusLabel->setText(tr("Value formula is empty: item value is not changed"));
-            m_infoDisplayNewValueStatusLabel->setStyleSheet("color: #6a8f43;");
-        } else {
-            const auto parseResult = tge::formula::parse(selectedNewValue.toStdString());
-            if (parseResult.ast) {
-                m_infoDisplayNewValueStatusLabel->setText(tr("Value formula parsed successfully"));
-                m_infoDisplayNewValueStatusLabel->setStyleSheet("color: #1d7d31;");
-            } else {
-                m_infoDisplayNewValueStatusLabel->setText(tr("Value parse error: %1").arg(QString::fromStdString(parseResult.error)));
-                m_infoDisplayNewValueStatusLabel->setStyleSheet("color: #b00020;");
-                selectedInfoDisplayValueOk = false;
-            }
-        }
-    } else {
-        m_infoDisplayNewValueStatusLabel->setText(tr("No info display items available"));
-        m_infoDisplayNewValueStatusLabel->setStyleSheet("color: #6a8f43;");
-    }
-
     QString allInfoDisplaySettingsError;
     const bool allInfoDisplaySettingsOk = validateAllInfoDisplayItemSettings(&allInfoDisplaySettingsError);
     if (allInfoDisplaySettingsOk) {
@@ -514,7 +479,6 @@ void EdgeDialog::updateValidation() {
             && selectedConditionOk
             && selectedNewValueOk
             && allSettingsOk
-            && selectedInfoDisplayValueOk
             && allInfoDisplaySettingsOk);
     }
 }
@@ -669,8 +633,7 @@ void EdgeDialog::refreshInfoDisplayItemRowCaption(int row) {
     const bool hasSettings = (it != m_infoDisplaySettingsById.constEnd())
         && (it.value().changePriority
             || it.value().changeVisibility
-            || it.value().changeShowValue
-            || !it.value().newValueFormula.trimmed().isEmpty());
+            || it.value().changeShowValue);
 
     item->setText(QString("#%1 | %2%3")
                       .arg(infoItem.id)
@@ -699,12 +662,10 @@ void EdgeDialog::saveInfoDisplayItemEditorToCurrentRow() {
     setting.newVisibility = (m_newVisibilityCombo->currentData().toInt() != 0);
     setting.changeShowValue = m_changeShowValueCheck->isChecked();
     setting.newShowValue = (m_newShowValueCombo->currentData().toInt() != 0);
-    setting.newValueFormula = m_infoDisplayNewValueEdit->toPlainText().trimmed();
 
     if (!setting.changePriority
         && !setting.changeVisibility
-        && !setting.changeShowValue
-        && setting.newValueFormula.isEmpty()) {
+        && !setting.changeShowValue) {
         m_infoDisplaySettingsById.remove(itemId);
         return;
     }
@@ -722,7 +683,7 @@ void EdgeDialog::loadInfoDisplayItemRowToEditor(int row) {
         m_newVisibilityCombo->setCurrentIndex(0);
         m_changeShowValueCheck->setChecked(false);
         m_newShowValueCombo->setCurrentIndex(0);
-        m_infoDisplayNewValueEdit->clear();
+        m_infoDisplayValueFormulaLabel->setText(tr("No info display item selected"));
         m_loadingInfoDisplayEditors = false;
         return;
     }
@@ -736,7 +697,6 @@ void EdgeDialog::loadInfoDisplayItemRowToEditor(int row) {
         m_newVisibilityCombo->setCurrentIndex(infoItem.isVisible ? 1 : 0);
         m_changeShowValueCheck->setChecked(false);
         m_newShowValueCombo->setCurrentIndex(infoItem.showFormulaValue ? 1 : 0);
-        m_infoDisplayNewValueEdit->clear();
     } else {
         const auto& setting = it.value();
         m_changePriorityCheck->setChecked(setting.changePriority);
@@ -745,8 +705,10 @@ void EdgeDialog::loadInfoDisplayItemRowToEditor(int row) {
         m_newVisibilityCombo->setCurrentIndex(setting.newVisibility ? 1 : 0);
         m_changeShowValueCheck->setChecked(setting.changeShowValue);
         m_newShowValueCombo->setCurrentIndex(setting.newShowValue ? 1 : 0);
-        m_infoDisplayNewValueEdit->setPlainText(setting.newValueFormula);
     }
+    m_infoDisplayValueFormulaLabel->setText(infoItem.valueFormula.trimmed().isEmpty()
+                                                ? tr("(empty)")
+                                                : infoItem.valueFormula);
 
     m_loadingInfoDisplayEditors = false;
 }
@@ -759,7 +721,6 @@ void EdgeDialog::updateInfoDisplayItemEditorsEnabledState() {
     m_newPrioritySpin->setEnabled(selected && m_changePriorityCheck->isChecked());
     m_newVisibilityCombo->setEnabled(selected && m_changeVisibilityCheck->isChecked());
     m_newShowValueCombo->setEnabled(selected && m_changeShowValueCheck->isChecked());
-    m_infoDisplayNewValueEdit->setEnabled(selected);
 }
 
 void EdgeDialog::onInfoDisplayItemSelectionChanged(int row) {
@@ -870,18 +831,6 @@ bool EdgeDialog::validateAllInfoDisplayItemSettings(QString* errorMessage) const
             return false;
         }
 
-        const QString newValue = setting.newValueFormula.trimmed();
-        if (!newValue.isEmpty()) {
-            const auto parseResult = tge::formula::parse(newValue.toStdString());
-            if (!parseResult.ast) {
-                if (errorMessage) {
-                    *errorMessage = tr("Info item #%1: value parse error: %2")
-                                        .arg(setting.itemIndex)
-                                        .arg(QString::fromStdString(parseResult.error));
-                }
-                return false;
-            }
-        }
     }
 
     return true;

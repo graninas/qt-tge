@@ -183,21 +183,12 @@ public:
                                                 .arg(setting.itemIndex));
             }
 
-            if (!setting.newValueFormula.trimmed().isEmpty()) {
-                QString formulaError;
-                const QString newValue = evaluateValueFormula(setting.newValueFormula, &formulaError);
-                if (!formulaError.isEmpty()) {
-                    result.debugMessages.append(QString("Info item %1 value evaluation error: %2")
-                                                    .arg(setting.itemIndex)
-                                                    .arg(formulaError));
-                } else {
-                    change.changeValue = true;
-                    change.newValue = newValue.toStdString();
-                }
-            }
-
             result.pendingInfoDisplayItemChanges.append(change);
         }
+
+        appendFormulaDrivenInfoDisplayPendingChanges(result.pendingVariableChanges,
+                                                    result.pendingInfoDisplayItemChanges,
+                                                    result.debugMessages);
 
         return result;
     }
@@ -270,7 +261,7 @@ public:
     }
 
 private:
-    std::map<std::string, int> buildFormulaParams() const {
+    std::map<std::string, int> buildFormulaParams(const QVector<PendingVariableChange>* pendingVariableChanges = nullptr) const {
         std::map<std::string, int> params;
         for (const auto& variable : m_state.variables) {
             if (!variable.def) {
@@ -286,6 +277,23 @@ private:
                         .toStdString());
             }
             params.emplace(variable.def->index.toStdString(), value);
+        }
+        if (pendingVariableChanges) {
+            for (const auto& change : *pendingVariableChanges) {
+                if (!change.def) {
+                    continue;
+                }
+                bool ok = false;
+                const int value = change.newValue.toInt(&ok);
+                if (!ok) {
+                    throw std::runtime_error(
+                        QString("Pending variable %1 has non-integer value '%2'.")
+                            .arg(change.def->index)
+                            .arg(change.newValue)
+                            .toStdString());
+                }
+                params[change.def->index.toStdString()] = value;
+            }
         }
         return params;
     }
@@ -306,12 +314,18 @@ private:
     }
 
     QString evaluateValueFormula(const QString& formulaText, QString* error = nullptr) const {
+        return evaluateValueFormula(formulaText, buildFormulaParams(), error);
+    }
+
+    QString evaluateValueFormula(const QString& formulaText,
+                                 const std::map<std::string, int>& params,
+                                 QString* error = nullptr) const {
         const QString trimmed = formulaText.trimmed();
         if (trimmed.isEmpty()) {
             return "";
         }
         try {
-            const int value = tge::formula::parseAndEvaluateExpression(trimmed.toStdString(), buildFormulaParams());
+            const int value = tge::formula::parseAndEvaluateExpression(trimmed.toStdString(), params);
             return QString::number(value);
         } catch (const std::exception& exception) {
             if (error) {
@@ -338,6 +352,71 @@ private:
             }
         }
         return nullptr;
+    }
+
+    PendingInfoDisplayItemChange* findPendingInfoDisplayItemChange(
+        QVector<PendingInfoDisplayItemChange>& pendingChanges,
+        int itemIndex) const {
+        for (auto& change : pendingChanges) {
+            if (change.itemIndex == itemIndex) {
+                return &change;
+            }
+        }
+        return nullptr;
+    }
+
+    void appendFormulaDrivenInfoDisplayPendingChanges(
+        const QVector<PendingVariableChange>& pendingVariableChanges,
+        QVector<PendingInfoDisplayItemChange>& pendingItemChanges,
+        QVector<QString>& debugMessages) const {
+        std::map<std::string, int> projectedParams;
+        try {
+            projectedParams = buildFormulaParams(&pendingVariableChanges);
+        } catch (const std::exception& exception) {
+            debugMessages.append(QString("Failed to prepare projected HUD values: %1")
+                                     .arg(QString::fromStdString(exception.what())));
+            return;
+        }
+
+        for (const auto& item : m_state.infoDisplayItems) {
+            if (!item.def) {
+                continue;
+            }
+
+            QString formulaError;
+            const QString projectedValue = evaluateValueFormula(item.def->valueFormula, projectedParams, &formulaError);
+            if (!formulaError.isEmpty()) {
+                debugMessages.append(QString("Info item %1 formula recalculation error: %2")
+                                         .arg(item.def->id)
+                                         .arg(formulaError));
+                continue;
+            }
+
+            if (projectedValue.toStdString() == item.value) {
+                continue;
+            }
+
+            PendingInfoDisplayItemChange* pendingChange =
+                findPendingInfoDisplayItemChange(pendingItemChanges, item.def->id);
+            if (!pendingChange) {
+                PendingInfoDisplayItemChange newChange;
+                newChange.itemIndex = item.def->id;
+                newChange.def = item.def;
+                pendingItemChanges.append(newChange);
+                pendingChange = &pendingItemChanges.last();
+            }
+
+            if (pendingChange->changeValue) {
+                if (pendingChange->newValue != projectedValue.toStdString()) {
+                    debugMessages.append(QString("Info item %1 keeps explicit pending value instead of formula recalculation.")
+                                             .arg(item.def->id));
+                }
+                continue;
+            }
+
+            pendingChange->changeValue = true;
+            pendingChange->newValue = projectedValue.toStdString();
+        }
     }
 
     QString initializeInfoDisplayValues() {

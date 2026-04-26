@@ -38,7 +38,6 @@ struct EdgeInfoDisplayItemSettingDef {
     bool newVisibility; // New visibility value, used if changeVisibility is true
     bool changeShowValue; // Whether to change the show value setting of the item
     bool newShowValue; // New show value setting, used if changeShowValue is true
-    QString newValueFormula; // Formula to compute the new value of the item when this edge is taken, can be empty to keep current value
 };
 
 // Edge definition

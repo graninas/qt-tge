@@ -38,8 +38,9 @@ int main(int argc, char *argv[])
     game.globalVariables.append({"P2", "Gold", "Player gold", VarType::Integer, "7"});
     game.infoDisplayItems.append({1, "Health", "[P1]", InfoDisplayItemMode::Actual, 10, true, true});
     game.infoDisplayItems.append({2, "Debug Gold", "[P2]", InfoDisplayItemMode::Debug, 20, true, true});
+    game.infoDisplayItems.append({3, "Summary", "([P1] + [P2])", InfoDisplayItemMode::Actual, 30, true, true});
     edge->variableSettings.append({1, "([P1] >= 100)", "([P1] - 10)"});
-    edge->infoDisplayItemSettings.append({1, true, 5, true, false, true, false, "([P1] - 10)"});
+    edge->infoDisplayItemSettings.append({1, true, 5, true, false, true, false});
 
     // Initialize game state
     GameInitializer initializer(game, GameMode::Normal);
@@ -86,8 +87,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
-    if (state_.infoDisplayItems.size() != 2) {
-        std::cerr << "Test failed: Expected 2 initialized info display items, got " << state_.infoDisplayItems.size() << std::endl;
+    if (state_.infoDisplayItems.size() != 3) {
+        std::cerr << "Test failed: Expected 3 initialized info display items, got " << state_.infoDisplayItems.size() << std::endl;
         return 1;
     }
     if (!state_.infoDisplayItems[0].def || !state_.infoDisplayItems[0].visible || !state_.infoDisplayItems[0].allowVisibilityChanges) {
@@ -96,6 +97,10 @@ int main(int argc, char *argv[])
     }
     if (!state_.infoDisplayItems[1].def || state_.infoDisplayItems[1].visible || state_.infoDisplayItems[1].allowVisibilityChanges) {
         std::cerr << "Test failed: Debug info item must be hidden and locked in Normal mode." << std::endl;
+        return 1;
+    }
+    if (!state_.infoDisplayItems[2].def || !state_.infoDisplayItems[2].visible || !state_.infoDisplayItems[2].allowVisibilityChanges) {
+        std::cerr << "Test failed: Formula-driven actual info item initialization is incorrect." << std::endl;
         return 1;
     }
 
@@ -107,12 +112,13 @@ int main(int argc, char *argv[])
         return 1;
     }
     GameState debugState = std::move(debugResult.state.value());
-    if (debugState.infoDisplayItems.size() != 2) {
-        std::cerr << "Test failed: Expected 2 debug info display items, got " << debugState.infoDisplayItems.size() << std::endl;
+    if (debugState.infoDisplayItems.size() != 3) {
+        std::cerr << "Test failed: Expected 3 debug info display items, got " << debugState.infoDisplayItems.size() << std::endl;
         return 1;
     }
     if (!debugState.infoDisplayItems[0].visible || debugState.infoDisplayItems[0].allowVisibilityChanges ||
-        !debugState.infoDisplayItems[1].visible || debugState.infoDisplayItems[1].allowVisibilityChanges) {
+        !debugState.infoDisplayItems[1].visible || debugState.infoDisplayItems[1].allowVisibilityChanges ||
+        !debugState.infoDisplayItems[2].visible || debugState.infoDisplayItems[2].allowVisibilityChanges) {
         std::cerr << "Test failed: In Debug mode all info items must be visible and visibility-locked." << std::endl;
         return 1;
     }
@@ -140,16 +146,33 @@ int main(int argc, char *argv[])
         std::cerr << "Test failed: Pending variable changes were computed incorrectly." << std::endl;
         return 1;
     }
-    if (transition->pendingInfoDisplayItemChanges.size() != 1) {
-        std::cerr << "Test failed: Pending info display changes were not created." << std::endl;
+    if (transition->pendingInfoDisplayItemChanges.size() != 2) {
+        std::cerr << "Test failed: Expected explicit and formula-driven pending info display changes, got "
+                  << transition->pendingInfoDisplayItemChanges.size() << std::endl;
         return 1;
     }
-    const auto& pendingItemChange = transition->pendingInfoDisplayItemChanges[0];
-    if (!pendingItemChange.changePriority || pendingItemChange.newPriority != 5 ||
-        !pendingItemChange.changeVisibility || pendingItemChange.newVisibility ||
-        !pendingItemChange.changeShowValue || pendingItemChange.newShowValue ||
-        !pendingItemChange.changeValue || pendingItemChange.newValue != "90") {
+    const PendingInfoDisplayItemChange* pendingItemChange = nullptr;
+    const PendingInfoDisplayItemChange* pendingSummaryChange = nullptr;
+    for (const auto& change : transition->pendingInfoDisplayItemChanges) {
+        if (change.itemIndex == 1) {
+            pendingItemChange = &change;
+        }
+        if (change.itemIndex == 3) {
+            pendingSummaryChange = &change;
+        }
+    }
+    if (!pendingItemChange ||
+        !pendingItemChange->changePriority || pendingItemChange->newPriority != 5 ||
+        !pendingItemChange->changeVisibility || pendingItemChange->newVisibility ||
+        !pendingItemChange->changeShowValue || pendingItemChange->newShowValue ||
+        !pendingItemChange->changeValue || pendingItemChange->newValue != "90") {
         std::cerr << "Test failed: Pending info display changes were computed incorrectly." << std::endl;
+        return 1;
+    }
+    if (!pendingSummaryChange || pendingSummaryChange->changePriority || pendingSummaryChange->changeVisibility ||
+        pendingSummaryChange->changeShowValue || !pendingSummaryChange->changeValue ||
+        pendingSummaryChange->newValue != "97") {
+        std::cerr << "Test failed: Formula-driven pending info display change was not prepared correctly." << std::endl;
         return 1;
     }
     auto stepResult = engine.step(*transition);
@@ -166,7 +189,11 @@ int main(int argc, char *argv[])
         std::cerr << "Test failed: Info display update was not applied on step." << std::endl;
         return 1;
     }
+    if (engine.state().infoDisplayItems[2].value != "97") {
+        std::cerr << "Test failed: Formula-driven info display item was not recalculated after step." << std::endl;
+        return 1;
+    }
 
-    std::cout << "Player runtime test passed: dynamic states and mode-specific initialization are correct." << std::endl;
+    std::cout << "Player runtime test passed: dynamic states, modes, and HUD recalculation are correct." << std::endl;
     return 0;
 }

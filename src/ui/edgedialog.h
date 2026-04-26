@@ -103,8 +103,7 @@ private:
     QComboBox* m_newVisibilityCombo;
     QCheckBox* m_changeShowValueCheck;
     QComboBox* m_newShowValueCombo;
-    QTextEdit* m_infoDisplayNewValueEdit;
-    QLabel* m_infoDisplayNewValueStatusLabel;
+    QLabel* m_infoDisplayValueFormulaLabel;
     QLabel* m_infoDisplayOverallStatusLabel;
 
     QSpinBox* m_prioritySpin;

@@ -35,7 +35,6 @@ void applyVisibilityOnEdge(EdgeDef* edge, int itemId, bool visible) {
     s.newVisibility = visible;
     s.changeShowValue = false;
     s.newShowValue = true;
-    s.newValueFormula = "";
     edge->infoDisplayItemSettings.append(s);
 }
 
