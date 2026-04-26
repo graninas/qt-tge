@@ -52,8 +52,9 @@ void GraphWidget::clearSelection()
         return;
     }
 
-    model->selectedLocationId = -1;
-    model->selectedEdgeId = -1;
+    model->selectedLocationIds.clear();
+    model->selectedEdgeIds.clear();
+    emit selectionChanged(model->selectedLocationIds.size(), model->selectedEdgeIds.size());
 }
 
 bool GraphWidget::toggleSelectionAtPosition(const QPoint& position)
@@ -64,15 +65,23 @@ bool GraphWidget::toggleSelectionAtPosition(const QPoint& position)
 
     int locationId = graphwidget_helpers::findLocationAtMouse(model, position, &model->sceneModel);
     if (locationId != -1) {
-        model->selectedLocationId = (model->selectedLocationId == locationId) ? -1 : locationId;
-        model->selectedEdgeId = -1;
+        if (model->selectedLocationIds.contains(locationId)) {
+            model->selectedLocationIds.remove(locationId);
+        } else {
+            model->selectedLocationIds.insert(locationId);
+        }
+        emit selectionChanged(model->selectedLocationIds.size(), model->selectedEdgeIds.size());
         return true;
     }
 
     int edgeId = graphwidget_helpers::findEdgeAtMouse(model, position, &model->sceneModel);
     if (edgeId != -1) {
-        model->selectedEdgeId = (model->selectedEdgeId == edgeId) ? -1 : edgeId;
-        model->selectedLocationId = -1;
+        if (model->selectedEdgeIds.contains(edgeId)) {
+            model->selectedEdgeIds.remove(edgeId);
+        } else {
+            model->selectedEdgeIds.insert(edgeId);
+        }
+        emit selectionChanged(model->selectedLocationIds.size(), model->selectedEdgeIds.size());
         return true;
     }
 
@@ -116,6 +125,9 @@ void GraphWidget::setModel(UiModel *m, const AppearanceSettings& appearance)
         model->sceneModel.setGridStep(100.0); // Default grid step
     }
     centerOnObservedVirtualPoint();
+    if (model) {
+        emit selectionChanged(model->selectedLocationIds.size(), model->selectedEdgeIds.size());
+    }
 }
 
 void GraphWidget::setNewLocationMode(bool enabled)
@@ -354,13 +366,13 @@ void GraphWidget::drawBackground(QPainter *painter, const QRectF &rect)
     painter->setRenderHint(QPainter::Antialiasing);
     if (model) {
         graphwidget_helpers::drawGrid(painter, rect, &model->sceneModel);
-        graphwidget_helpers::drawEdges(painter, model, &model->sceneModel, hoveredEdgeId, model->selectedEdgeId);
+        graphwidget_helpers::drawEdges(painter, model, &model->sceneModel, hoveredEdgeId, model->selectedEdgeIds);
         graphwidget_helpers::drawLocations(painter, model, &model->sceneModel,
                                            appearanceSettings.idOffsetY,
                                            appearanceSettings.labelOffsetY,
                                            appearanceSettings.customColorRingWidth,
                                            hoveredLocationId,
-                                           model->selectedLocationId);
+                           model->selectedLocationIds);
         // Draw memo on top if hovering
         auto locIt = model->gameDef.locations.find(hoveredLocationId);
         if (locIt != model->gameDef.locations.end()) {
@@ -441,7 +453,7 @@ void GraphWidget::keyPressEvent(QKeyEvent *event)
             cancelEdgeCreation();
             handled = true;
         }
-        if (model && (model->selectedLocationId != -1 || model->selectedEdgeId != -1)) {
+        if (model && (!model->selectedLocationIds.isEmpty() || !model->selectedEdgeIds.isEmpty())) {
             clearSelection();
             viewport()->update();
             handled = true;

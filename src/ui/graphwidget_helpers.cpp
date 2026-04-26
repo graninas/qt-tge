@@ -181,7 +181,7 @@ static void computeRepellingOffsets(const UiModel* model, std::map<int, double>&
     }
 }
 
-void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int hoveredEdgeId, int selectedEdgeId) {
+void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int hoveredEdgeId, const QSet<int>& selectedEdgeIds) {
     if (!sceneModel) return;
 
     const QColor selectionColor(255, 140, 0);
@@ -215,7 +215,7 @@ void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneM
             }
 
             const bool isHovered = (i == hoveredEdgeId);
-            const bool isSelected = (i == selectedEdgeId);
+            const bool isSelected = selectedEdgeIds.contains(i);
             QColor paintColor = isSelected ? selectionColor : baseColor;
             if (isHovered) {
                 paintColor = paintColor.darker(isSelected ? 110 : 130);
@@ -241,7 +241,7 @@ void drawEdges(QPainter *painter, const UiModel *model, const SceneModel* sceneM
     }
 }
 
-void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int customColorRingWidth, int hoveredLocationId, int selectedLocationId) {
+void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sceneModel, int idOffsetY, int labelOffsetY, int customColorRingWidth, int hoveredLocationId, const QSet<int>& selectedLocationIds) {
     if (!sceneModel) return;
 
     const double outerRingRadius = 14.0;
@@ -280,7 +280,7 @@ void drawLocations(QPainter *painter, const UiModel *model, const SceneModel* sc
         painter->setBrush(QBrush(fillColor));
         painter->drawEllipse(pos, innerCircleRadius, innerCircleRadius);
 
-        const bool isSelected = (selectedLocationId == loc.id);
+        const bool isSelected = selectedLocationIds.contains(loc.id);
         const bool isHovered = (hoveredLocationId == loc.id);
         const double outerRingOuterRadius = outerRingRadius + ringWidth / 2.0;
         double highlightOuterRadius = outerRingOuterRadius;

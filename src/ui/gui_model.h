@@ -5,6 +5,7 @@
 #include "tge/editor/runtime/manager.h"
 #include "tge/editor/types.h"
 #include <QPointF>
+#include <QSet>
 #include <QString>
 #include <QTransform>
 
@@ -108,8 +109,8 @@ public:
     SceneModel sceneModel;
     AppearanceSettings appearance;
     tge::domain::GameDef gameDef;
-    int selectedLocationId = -1;
-    int selectedEdgeId = -1;
+    QSet<int> selectedLocationIds;
+    QSet<int> selectedEdgeIds;
     tge::editor::EditorState editorState;
     tge::editor::IdGenerator idGen;
     tge::editor::runtime::Manager manager;

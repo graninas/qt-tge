@@ -4,6 +4,7 @@
 #include "globalvariablesdialog.h"
 #include "infodisplayitemsdialog.h"
 
+#include <QLabel>
 #include <QToolBar>
 #include <QToolButton>
 
@@ -19,6 +20,7 @@ MainWindow::MainWindow(QWidget *parent)
     static UiModel staticModel = UiModel::makeTestGame();
     model = &staticModel;
     graphWidget->setModel(model);
+    connect(graphWidget, &GraphWidget::selectionChanged, this, &MainWindow::updateSelectionSummary);
 
     // Toolbox setup
     QToolBar *toolBar = new QToolBar("Toolbox", this);
@@ -42,6 +44,11 @@ MainWindow::MainWindow(QWidget *parent)
     infoDisplayItemsButton->setToolTip("Edit game info display items");
     toolBar->addWidget(infoDisplayItemsButton);
     connect(infoDisplayItemsButton, &QToolButton::clicked, this, &MainWindow::onEditInfoDisplayItems);
+
+    selectionSummaryLabel = new QLabel(this);
+    selectionSummaryLabel->setToolTip("Selected locations and edges");
+    toolBar->addWidget(selectionSummaryLabel);
+    updateSelectionSummary(model->selectedLocationIds.size(), model->selectedEdgeIds.size());
 }
 
 void MainWindow::onNewLocationMode()
@@ -72,6 +79,15 @@ void MainWindow::onEditInfoDisplayItems()
     if (dlg.exec() == QDialog::Accepted) {
         graphWidget->viewport()->update();
     }
+}
+
+void MainWindow::updateSelectionSummary(int locationCount, int edgeCount)
+{
+    if (!selectionSummaryLabel) {
+        return;
+    }
+
+    selectionSummaryLabel->setText(QString("Selected: L %1, E %2").arg(locationCount).arg(edgeCount));
 }
 
 MainWindow::~MainWindow()

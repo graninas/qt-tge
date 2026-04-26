@@ -107,6 +107,7 @@ public:
 
 signals:
     void newLocationCreated();
+    void selectionChanged(int locationCount, int edgeCount);
 };
 
 #endif // GRAPHWIDGET_H
