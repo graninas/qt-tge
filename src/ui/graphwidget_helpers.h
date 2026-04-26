@@ -39,6 +39,9 @@ int findEdgeAtMouse(const UiModel* model, const QPoint& mousePos, const SceneMod
 // Transforms a mouse position to scene coordinates
 QPointF mouseToScene(const QPoint& mousePos, const SceneModel* sceneModel);
 
+// Opens the EdgeDialog for the given edge id, updates edge fields if accepted
+bool editEdgeDialog(UiModel* model, int edgeId, QWidget* parent, std::function<void()> onUpdate = nullptr);
+
 // Opens the LocationDialog for the given location id, updates label and descriptions if accepted
 bool editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::function<void()> onUpdate = nullptr);
 }

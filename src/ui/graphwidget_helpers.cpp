@@ -8,6 +8,7 @@
 #include <tuple>
 #include <set>
 #include "gui_model.h"
+#include "edgedialog.h"
 #include "locationdialog.h"
 #include <QDialog>
 #include <QPainterPathStroker>
@@ -475,6 +476,40 @@ int findEdgeAtMouse(const UiModel* model, const QPoint& mousePos, const SceneMod
 QPointF mouseToScene(const QPoint& mousePos, const SceneModel* sceneModel) {
     if (!sceneModel) return QPointF();
     return sceneModel->widgetToScene(mousePos);
+}
+
+bool editEdgeDialog(UiModel* model, int edgeId, QWidget* parent, std::function<void()> onUpdate) {
+    if (!model || !model->gameDef.edges.contains(edgeId)) {
+        return false;
+    }
+
+    const auto& edge = model->gameDef.edges[edgeId];
+    if (!model->gameDef.locations.contains(edge.fromLocation) || !model->gameDef.locations.contains(edge.toLocation)) {
+        return false;
+    }
+
+    const auto& fromLoc = model->gameDef.locations[edge.fromLocation];
+    const auto& toLoc = model->gameDef.locations[edge.toLocation];
+
+    EdgeDialog dlg(edge,
+                   fromLoc,
+                   toLoc,
+                   model->gameDef.globalVariables,
+                   model->gameDef.infoDisplayItems,
+                   parent);
+    if (dlg.exec() == QDialog::Accepted) {
+        auto& edgeToUpdate = model->gameDef.edges[edgeId];
+        edgeToUpdate.optionText = dlg.optionText();
+        edgeToUpdate.transitionText = dlg.transitionText();
+        edgeToUpdate.condition = dlg.conditionText();
+        edgeToUpdate.variableSettings = dlg.variableSettings();
+        edgeToUpdate.infoDisplayItemSettings = dlg.infoDisplayItemSettings();
+        edgeToUpdate.color = dlg.edgeColor();
+        if (onUpdate) onUpdate();
+        return true;
+    }
+
+    return false;
 }
 
 bool editLocationDialog(UiModel* model, int locationId, QWidget* parent, std::function<void()> onUpdate) {

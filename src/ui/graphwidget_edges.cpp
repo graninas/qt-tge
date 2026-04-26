@@ -33,21 +33,14 @@ void finishEdgeCreation(GraphWidget* w, int destinationLocationId) {
         } else {
             auto* edge = w->model->manager.addEdge(w->edgeSourceLocationId, destinationLocationId, "", "");
             if (edge) {
-                auto& fromLoc = w->model->gameDef.locations[w->edgeSourceLocationId];
-                auto& toLoc = w->model->gameDef.locations[destinationLocationId];
-                EdgeDialog dlg(*edge,
-                               fromLoc,
-                               toLoc,
-                               w->model->gameDef.globalVariables,
-                               w->model->gameDef.infoDisplayItems,
-                               w);
-                if (dlg.exec() == QDialog::Accepted) {
-                    edge->optionText = dlg.optionText();
-                    edge->transitionText = dlg.transitionText();
-                    edge->condition = dlg.conditionText();
-                    edge->variableSettings = dlg.variableSettings();
-                    edge->infoDisplayItemSettings = dlg.infoDisplayItemSettings();
-                    edge->color = dlg.edgeColor();
+                const int edgeId = edge->id;
+                const bool accepted = graphwidget_helpers::editEdgeDialog(
+                    w->model,
+                    edgeId,
+                    w,
+                    [w]() { w->viewport()->update(); });
+                if (!accepted) {
+                    w->model->manager.deleteEdge(edgeId);
                 }
             } else {
                 qWarning() << "Edge creation error:" << w->model->manager.lastError();
